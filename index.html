@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d6670">
+<title>Mantención de Piletas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Herramienta de terreno: barra de pestañas arriba, un panel a la vez, columna única en celular */
+:root{
+  --bg:#f3f6f6; --surface:#ffffff; --surface-2:#e8eeee; --line:#cfd9d9;
+  --fg:#16211f; --muted:#52615f; --accent:#0d6670; --accent-fg:#ffffff; --accent-soft:#d9eced;
+  --ok:#1f7a45; --ok-soft:#dcefe3; --warn:#94600a; --warn-soft:#f6ead2; --bad:#a3261b; --bad-soft:#f6dedb;
+  --f-body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+  --r:10px; color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#0e1516; --surface:#162123; --surface-2:#1e2c2e; --line:#2d3f41;
+  --fg:#e6eeed; --muted:#9db0ae; --accent:#5cc0c9; --accent-fg:#06282c; --accent-soft:#173a3e;
+  --ok:#6fcf97; --ok-soft:#173826; --warn:#e7b65c; --warn-soft:#3a2d12; --bad:#f08b80; --bad-soft:#41201c; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.45;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:16px;padding-block:20px 48px;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px}
+header h1{margin:0;font-size:1.65rem;line-height:1.15;text-wrap:balance}
+.eyebrow{font-size:.75rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.userbox{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;padding:4px 10px;border-radius:999px;background:var(--surface-2);color:var(--muted)}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.chip.on .dot{background:var(--ok)} .chip.off .dot{background:var(--bad)}
+.tabs-scroll{overflow-x:auto;margin-inline:-16px;padding-inline:16px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);min-width:max-content}
+.tab{font:inherit;font-weight:600;font-size:.95rem;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:10px 12px;cursor:pointer;min-height:44px}
+.tab[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.tab:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;align-items:start}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.card h2{margin:0;font-size:1.15rem}
+.card h3{margin:0;font-size:1rem}
+.muted{color:var(--muted)} .small{font-size:.85rem}
+label{font-size:.85rem;font-weight:600;color:var(--muted);display:flex;flex-direction:column;gap:5px}
+input,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-height:44px;width:100%}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px}
+.seg button{font:inherit;font-weight:600;min-height:48px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;cursor:pointer;padding:6px 8px;line-height:1.2}
+.seg button small{display:block;font-weight:400;color:var(--muted);font-size:.78rem}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.seg button[aria-pressed="true"] small{color:var(--accent-fg)}
+.btn{font:inherit;font-weight:600;min-height:46px;padding:10px 18px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.sm{min-height:36px;padding:4px 12px;font-size:.85rem}
+.btn.danger{background:transparent;color:var(--bad);border-color:var(--bad);min-height:36px;padding:4px 10px;font-size:.85rem}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.result{border-radius:var(--r);padding:16px;background:var(--accent-soft);display:flex;flex-direction:column;gap:6px}
+.result .big{font-family:var(--f-mono);font-size:2.6rem;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;font-size:.78rem;font-weight:700;letter-spacing:.03em;padding:3px 9px;border-radius:999px;text-transform:uppercase}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.bad{background:var(--bad-soft);color:var(--bad)} .pill.info{background:var(--surface-2);color:var(--muted)}
+.alerts{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.alerts li{padding:10px 12px;border-radius:8px;font-size:.92rem}
+.alerts .warn{background:var(--warn-soft)} .alerts .bad{background:var(--bad-soft)} .alerts .ok{background:var(--ok-soft)}
+.tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:var(--surface-2)}
+td.num,th.num{text-align:right;font-family:var(--f-mono)}
+tr:last-child td{border-bottom:0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{background:var(--surface-2);border-radius:8px;padding:12px}
+.kpi b{display:block;font-family:var(--f-mono);font-size:1.45rem;font-variant-numeric:tabular-nums}
+.kpi span{font-size:.8rem;color:var(--muted)}
+.empty{padding:22px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:8px}
+.check{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);font-weight:400;color:var(--fg);font-size:.95rem;flex-direction:row}
+.check input{width:24px;height:24px;min-height:0;flex-shrink:0;margin-top:1px;accent-color:var(--accent)}
+.check .n{font-family:var(--f-mono);color:var(--muted);font-size:.85rem;min-width:18px}
+svg text{fill:var(--muted);font-family:var(--f-mono);font-size:12px}
+svg .bar{fill:var(--accent)} svg .base{stroke:var(--line)} svg .val{fill:var(--fg);font-weight:600}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:12px 18px;border-radius:8px;font-weight:600;max-width:calc(100% - 32px);z-index:5}
+ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.login{max-width:460px;margin:0 auto;width:100%}
+.err{color:var(--bad);font-size:.85rem}
+.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
+@media (prefers-reduced-motion:no-preference){.tab,.seg button,.btn{transition:background .15s,color .15s,border-color .15s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <div class="eyebrow">Departamento de Áreas Verdes</div>
+    <h1>Mantención de Piletas</h1>
+  </div>
+  <div class="userbox">
+    <span id="dbStatus" class="chip"><span class="dot"></span><span id="dbStatusTxt">Conectando…</span></span>
+    <span id="userTxt" class="small muted" hidden></span>
+    <button class="btn ghost sm" id="btnSalir" type="button" hidden>Salir</button>
+  </div>
+</header>
+
+<!-- INGRESO -->
+<section id="loginView" class="login" hidden>
+  <div class="card">
+    <h2>Personal en terreno</h2>
+    <label for="lgPersona">Tu nombre<select id="lgPersona"><option value="">Cargando personal…</option></select></label>
+    <label for="lgPin" id="lgPinBox" hidden>PIN de supervisor (4 dígitos)<input id="lgPin" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></label>
+    <div class="err" id="lgErr1"></div>
+    <button class="btn" type="button" id="btnEntrar" disabled>Entrar</button>
+    <hr class="sep">
+    <h2>Jefatura y gerencia</h2>
+    <p class="small muted" style="margin:0">Con el mismo correo y contraseña de Estadio Verde.</p>
+    <label for="lgEmail">Correo<input id="lgEmail" type="email" autocomplete="username"></label>
+    <label for="lgPass">Contraseña<input id="lgPass" type="password" autocomplete="current-password"></label>
+    <div class="err" id="lgErr2"></div>
+    <button class="btn ghost" type="button" id="btnEmail">Ingresar con correo</button>
+  </div>
+</section>
+
+<!-- APP -->
+<div id="appView" hidden style="display:flex;flex-direction:column;gap:18px">
+<div class="tabs-scroll">
+<nav class="tabs" role="tablist" aria-label="Secciones">
+  <button class="tab" role="tab" data-tab="dosis">Dosificar</button>
+  <button class="tab" role="tab" data-tab="registro">Registro</button>
+  <button class="tab" role="tab" data-tab="informe">Informe semanal</button>
+  <button class="tab" role="tab" data-tab="gasto">Cloro y gasto</button>
+  <button class="tab" role="tab" data-tab="vaciado">Vaciado</button>
+  <button class="tab" role="tab" data-tab="guia">Guía</button>
+</nav>
+</div>
+
+<section id="p-dosis" class="grid2" hidden>
+  <form class="card" id="fDosis" autocomplete="off">
+    <h2>Medición y dosis</h2>
+    <div><div class="eyebrow" style="margin-bottom:6px">Pileta</div><div class="seg" id="segPileta"></div></div>
+    <div><div class="eyebrow" style="margin-bottom:6px">Cloro líquido en uso</div>
+      <div class="seg" id="segTipo">
+        <button type="button" data-tipo="10" aria-pressed="true">Cloro 10%<small>piscina</small></button>
+        <button type="button" data-tipo="5" aria-pressed="false">Cloro 5%<small>doméstico</small></button>
+      </div></div>
+    <div class="row">
+      <label for="inCl">Cloro libre (ppm)<input id="inCl" type="number" inputmode="decimal" step="0.1" min="0" max="10" placeholder="0,3"></label>
+      <label for="inPh">pH<input id="inPh" type="number" inputmode="decimal" step="0.1" min="5" max="9" placeholder="7,4"></label>
+    </div>
+    <div class="row">
+      <label for="inFecha">Fecha<input id="inFecha" type="date"></label>
+      <label for="inAplicada">Dosis aplicada (mL)<input id="inAplicada" type="number" inputmode="numeric" step="5" min="0"></label>
+    </div>
+    <label for="inNota">Observación (opcional)<input id="inNota" type="text" placeholder="Agua turbia, hojas, viento…"></label>
+    <div class="actions"><button class="btn" type="submit" id="btnGuardar">Guardar registro</button></div>
+  </form>
+  <div class="card">
+    <h2>Resultado</h2>
+    <div class="result">
+      <div class="small muted">Dosis recomendada</div>
+      <div class="big" id="resDosis">—</div>
+      <div id="resPill"></div>
+      <div class="small muted" id="resCalc">Ingresa la lectura de cloro libre.</div>
+    </div>
+    <ul class="alerts" id="resAlerts"></ul>
+    <div class="small muted">Meta: 0,8 ppm de cloro libre (rango 0,5–1,0) · pH 7,2–7,6. Diluir en balde y aplicar al atardecer, cerca de la succión de la bomba, lejos de las plantas.</div>
+  </div>
+</section>
+
+<section id="p-registro" class="card" hidden>
+  <div class="actions" style="justify-content:space-between">
+    <h2>Registro de mediciones</h2>
+    <label for="filPileta" style="flex-direction:row;align-items:center;gap:8px">Pileta<select id="filPileta" style="width:auto"><option value="">Todas</option></select></label>
+  </div>
+  <div id="regBody"></div>
+</section>
+
+<section id="p-informe" class="card" hidden>
+  <div class="actions" style="justify-content:space-between">
+    <h2>Informe semanal</h2>
+    <div class="actions">
+      <label for="infFecha" style="flex-direction:row;align-items:center;gap:8px">Semana del<input id="infFecha" type="date" style="width:auto"></label>
+      <button class="btn ghost" type="button" id="btnCopiar">Copiar resumen</button>
+    </div>
+  </div>
+  <div id="infBody"></div>
+</section>
+
+<section id="p-gasto" class="grid2" hidden>
+  <div class="card"><h2>Stock y gasto de cloro</h2><div id="gastoBody"></div></div>
+  <div class="card">
+    <form id="fCompra" autocomplete="off" style="display:flex;flex-direction:column;gap:14px">
+      <h2>Registrar compra o ingreso</h2>
+      <div class="row">
+        <label for="cFecha">Fecha<input id="cFecha" type="date"></label>
+        <label for="cTipo">Tipo<select id="cTipo"><option value="10">Cloro 10%</option><option value="5">Cloro 5%</option></select></label>
+      </div>
+      <div class="row">
+        <label for="cLitros">Litros<input id="cLitros" type="number" inputmode="decimal" step="0.5" min="0" placeholder="20"></label>
+        <label for="cCosto">Costo total ($)<input id="cCosto" type="number" inputmode="numeric" step="1" min="0" placeholder="Valor de la factura"></label>
+      </div>
+      <label for="cProv">Proveedor o nota (opcional)<input id="cProv" type="text"></label>
+      <div class="actions"><button class="btn" type="submit">Guardar compra</button></div>
+    </form>
+    <h3>Compras registradas</h3>
+    <div id="comprasBody"></div>
+  </div>
+</section>
+
+<section id="p-vaciado" class="grid2" hidden>
+  <form class="card" id="fVaciado" autocomplete="off">
+    <h2>Protocolo de vaciado y lavado</h2>
+    <p class="small muted" style="margin:0">El agua clorada nunca se descarga al jardín. Completa todos los pasos antes de registrar.</p>
+    <div class="row">
+      <label for="vPileta">Pileta<select id="vPileta"></select></label>
+      <label for="vSusp">Cloro suspendido desde<input id="vSusp" type="date"></label>
+    </div>
+    <label for="vCl">Cloro libre verificado (ppm)<input id="vCl" type="number" inputmode="decimal" step="0.1" min="0" placeholder="0,0"></label>
+    <div id="vChecks"></div>
+    <ul class="alerts" id="vAlerts"></ul>
+    <div class="actions"><button class="btn" type="submit" id="btnVaciado" disabled>Registrar vaciado</button></div>
+  </form>
+  <div class="card"><h2>Vaciados realizados</h2><div id="vacBody"></div></div>
+</section>
+
+<section id="p-guia" class="grid2" hidden>
+  <div class="card">
+    <h2>Rangos objetivo</h2>
+    <div class="kpis">
+      <div class="kpi"><b>0,5–1,0</b><span>ppm cloro libre · meta 0,8</span></div>
+      <div class="kpi"><b>7,2–7,6</b><span>pH</span></div>
+    </div>
+    <h3>Frecuencia de medición</h3>
+    <ul class="plain">
+      <li><b>Primavera-verano:</b> diario, a media tarde, antes de aplicar.</li>
+      <li><b>Otoño-invierno:</b> 2–3 veces por semana.</li>
+      <li><b>pH:</b> 2–3 veces por semana todo el año.</li>
+      <li><b>Medición extra:</b> después de lluvia, viento con hojas, relleno de agua o agua turbia.</li>
+    </ul>
+    <h3>Si la lectura está fuera de rango</h3>
+    <ul class="plain">
+      <li><b>Cloro 0,8–1,5 ppm:</b> no agregar. Volver a medir al día siguiente.</li>
+      <li><b>Cloro sobre 1,5 ppm:</b> no agregar y avisar al supervisor.</li>
+      <li><b>pH sobre 7,6:</b> aplicar reductor de pH según el fabricante, separado varias horas del cloro.</li>
+      <li><b>pH bajo 7,2:</b> aplicar incrementador de pH (carbonato de sodio) según el fabricante.</li>
+      <li><b>Agua verde con cloro en rango:</b> revisar pH, filtro y bomba antes de subir la dosis.</li>
+    </ul>
+    <h3>Nunca</h3>
+    <ul class="plain">
+      <li>Mezclar cloro con ácidos, reductor de pH u otros productos.</li>
+      <li>Aplicar cloro "a ojo" o sin medir antes.</li>
+      <li>Descargar agua clorada o de lavado hacia los jardines.</li>
+      <li>Hacer supercloraciones con los chorros funcionando.</li>
+      <li>Manipular cloro sin guantes y lentes de seguridad.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>Tabla de dosis (mL)</h2>
+    <p class="small muted" style="margin:0">Para llevar el cloro libre a 0,8 ppm. Redondeado a 5 mL.</p>
+    <div class="tablebox"><table id="tblDosis"></table></div>
+  </div>
+</section>
+</div>
+</div>
+
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue, push, remove, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+// ─── FIREBASE (mismo proyecto que Estadio Verde) ─────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyBgxVOk_OAh2XTouD9gLw5rycaNF-OWlnU",
+  authDomain: "riego-estadio-espanol.firebaseapp.com",
+  databaseURL: "https://riego-estadio-espanol-default-rtdb.firebaseio.com",
+  projectId: "riego-estadio-espanol",
+  storageBucket: "riego-estadio-espanol.firebasestorage.app",
+  messagingSenderId: "972722300084",
+  appId: "1:972722300084:web:0da9c37b416a050c3b63e1",
+};
+const fbApp = initializeApp(firebaseConfig, "piletas");
+const db = getDatabase(fbApp);
+const auth = getAuth(fbApp);
+const ROOT = "estadio-verde-data";
+const PIL = ROOT + "/piletas";   // mediciones, compras, vaciados — misma ruta que usará el módulo de Estadio Verde
+
+// Roles: mismo criterio que Estadio Verde (programador fijo + config/emails_extra)
+const ROLES_EMAIL = { "carmenluzhdiez@gmail.com": "programador" };
+function getRolByEmail(email, extra = {}) {
+  if (!email) return null;
+  const lower = email.toLowerCase();
+  if (ROLES_EMAIL[lower]) return ROLES_EMAIL[lower];
+  const clave = lower.replace(/\./g, ",").replace(/@/g, "_at_");
+  for (const [k, v] of Object.entries(extra || {})) {
+    if (typeof v === "object" && v !== null && v.email?.toLowerCase() === lower) return v.rol;
+    if (typeof v === "string" && k === clave) return v;
+  }
+  return null;
+}
+// Qué puede hacer cada rol
+const PERM = {
+  trabajador:  { tabs: ["dosis", "registro", "guia"], registrar: true },
+  supervisor:  { tabs: ["dosis", "registro", "informe", "gasto", "vaciado", "guia"], registrar: true, compras: true, vaciado: true },
+  jefa:        { tabs: ["dosis", "registro", "informe", "gasto", "vaciado", "guia"], registrar: true, compras: true, vaciado: true, borrar: true },
+  programador: { tabs: ["dosis", "registro", "informe", "gasto", "vaciado", "guia"], registrar: true, compras: true, vaciado: true, borrar: true },
+  gerencia:    { tabs: ["registro", "informe", "gasto", "guia"] },
+};
+const ROL_TXT = { trabajador: "Jardinero", supervisor: "Supervisor", jefa: "Jefa AV", programador: "Jefa AV", gerencia: "Gerencia" };
+
+// ─── LÓGICA DE PILETAS (portable al módulo React) ────────────────────────────
+const PILETAS = [{ id: "p15", nombre: "Pileta 15 m³", vol: 15 }, { id: "p12", nombre: "Pileta 12 m³", vol: 12 }, { id: "p5", nombre: "Pileta 5 m³", vol: 5 }];
+const META = 0.8, CL_MIN = 0.5, CL_ALTO = 1.5, PH_MIN = 7.2, PH_MAX = 7.6;
+function dosis(vol, lect, tipo) {
+  if (!(lect >= 0) || lect >= META) return 0;
+  const f = tipo === "5" ? 20 : 10;
+  return Math.max(0, Math.round((META - lect) * vol * f / 5) * 5);
+}
+function estadoCl(cl) {
+  if (cl > CL_ALTO) return { cls: "bad", txt: "Cloro alto" };
+  if (cl >= META) return { cls: "ok", txt: "En rango · no agregar" };
+  if (cl >= CL_MIN) return { cls: "warn", txt: "Bajo la meta" };
+  return { cls: "bad", txt: "Cloro bajo" };
+}
+
+// ─── UTILIDADES ──────────────────────────────────────────────────────────────
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const pName = id => (PILETAS.find(p => p.id === id) || { nombre: id }).nombre;
+const nf = (n, d = 1) => Number(n).toLocaleString("es-CL", { minimumFractionDigits: d, maximumFractionDigits: d });
+const money = n => "$" + Math.round(n).toLocaleString("es-CL");
+const pad = n => String(n).padStart(2, "0");
+const ymd = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+const parseYmd = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const fmtFecha = s => { if (!s) return "—"; const d = parseYmd(s); return pad(d.getDate()) + "-" + pad(d.getMonth() + 1) + "-" + d.getFullYear(); };
+const monday = d => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const today = ymd(new Date());
+const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) { } } };
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; }, 2600); }
+function setStatus(on, txt) { const c = $("#dbStatus"); c.classList.toggle("on", on); c.classList.toggle("off", !on); $("#dbStatusTxt").textContent = txt; }
+
+// ─── ESTADO ──────────────────────────────────────────────────────────────────
+const S = { med: [], compras: [], vac: [], personal: [], pines: {}, pileta: "p15", tipo: ls.get("pil_tipo") === "5" ? "5" : "10", aplicadaTocada: false, borrar: null, sesion: null, subs: [] };
+const can = k => !!(S.sesion && PERM[S.sesion.rol] && PERM[S.sesion.rol][k]);
+
+// ─── INGRESO ─────────────────────────────────────────────────────────────────
+function normalizaPersonal(v) {
+  const arr = Array.isArray(v) ? v : Object.values(v || {});
+  return arr.filter(p => p && p.nombre && !/jef/i.test(p.cargo || "") && !/desvinc|inactiv|retir|baja/i.test(p.estado || ""));
+}
+async function cargarPersonal() {
+  try {
+    const [per, pines] = await Promise.all([get(ref(db, ROOT + "/personal")), get(ref(db, ROOT + "/pines_supervisor"))]);
+    S.personal = normalizaPersonal(per.val());
+    S.pines = pines.val() || {};
+    $("#lgPersona").innerHTML = '<option value="">Selecciona tu nombre</option>' + S.personal.map(p => `<option value="${esc(p.id)}">${esc(p.nombre)}</option>`).join("");
+  } catch (e) {
+    $("#lgPersona").innerHTML = '<option value="">No se pudo cargar el personal</option>';
+  }
+}
+$("#lgPersona").addEventListener("change", () => {
+  const p = S.personal.find(x => String(x.id) === $("#lgPersona").value);
+  $("#lgPinBox").hidden = !(p && /supervisor/i.test(p.cargo || ""));
+  $("#btnEntrar").disabled = !p; $("#lgErr1").textContent = "";
+});
+$("#btnEntrar").addEventListener("click", () => {
+  const p = S.personal.find(x => String(x.id) === $("#lgPersona").value);
+  if (!p) return;
+  const esSup = /supervisor/i.test(p.cargo || "");
+  if (esSup) {
+    const guardado = String(S.pines[String(p.id)] || p.pinSupervisor || "");
+    if (!guardado) { $("#lgErr1").textContent = "PIN no configurado. Se configura en Estadio Verde → Personal."; return; }
+    if ($("#lgPin").value !== guardado) { $("#lgErr1").textContent = "PIN incorrecto."; return; }
+  }
+  iniciarSesion({ id: String(p.id), nombre: p.nombre, rol: esSup ? "supervisor" : "trabajador", local: true });
+});
+$("#btnEmail").addEventListener("click", async () => {
+  const email = $("#lgEmail").value.trim().toLowerCase(), pass = $("#lgPass").value;
+  $("#lgErr2").textContent = "";
+  if (!email || !pass) { $("#lgErr2").textContent = "Ingresa correo y contraseña."; return; }
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch (e) { $("#lgErr2").textContent = "Correo o contraseña incorrectos."; }
+});
+$("#btnSalir").addEventListener("click", async () => {
+  ls.set("pil_sesion", null);
+  S.subs.forEach(u => u()); S.subs = []; S.sesion = null;
+  if (auth.currentUser && !auth.currentUser.isAnonymous) { await signOut(auth); }
+  else mostrarLogin();
+});
+
+function iniciarSesion(ses) {
+  S.sesion = ses;
+  if (ses.local) ls.set("pil_sesion", JSON.stringify(ses));
+  $("#loginView").hidden = true; $("#appView").hidden = false;
+  $("#userTxt").hidden = false; $("#btnSalir").hidden = false;
+  $("#userTxt").textContent = `${ses.nombre} · ${ROL_TXT[ses.rol] || ses.rol}`;
+  const tabsOk = PERM[ses.rol].tabs;
+  document.querySelectorAll(".tab").forEach(b => { b.hidden = !tabsOk.includes(b.dataset.tab); });
+  $("#fCompra").hidden = !can("compras");
+  const last = ls.get("pil_tab");
+  showTab(tabsOk.includes(last) ? last : tabsOk[0]);
+  suscribir();
+}
+function mostrarLogin() {
+  $("#loginView").hidden = false; $("#appView").hidden = true;
+  $("#userTxt").hidden = true; $("#btnSalir").hidden = true;
+  $("#lgPin").value = ""; $("#lgPass").value = "";
+  if (!auth.currentUser) signInAnonymously(auth).catch(() => setStatus(false, "Sin conexión"));
+  else cargarPersonal();
+}
+
+onAuthStateChanged(auth, async user => {
+  if (!user) { setStatus(false, "Sin sesión"); if (!S.sesion) signInAnonymously(auth).catch(() => setStatus(false, "Sin conexión")); return; }
+  setStatus(true, "Conectado");
+  if (!user.isAnonymous) {
+    let extra = {};
+    try { extra = (await get(ref(db, ROOT + "/config/emails_extra"))).val() || {}; } catch (e) { }
+    const rol = getRolByEmail(user.email, extra);
+    if (!rol || !PERM[rol]) { await signOut(auth); $("#lgErr2").textContent = "Este correo no tiene acceso. Se gestiona en Estadio Verde → Personal → Gestión de Accesos."; return; }
+    const p = Object.values(extra).find(v => v && typeof v === "object" && v.email?.toLowerCase() === user.email.toLowerCase());
+    iniciarSesion({ id: user.uid, nombre: (p && p.nombre) || user.email, rol, local: false });
+    return;
+  }
+  const guardada = ls.get("pil_sesion");
+  if (guardada && !S.sesion) { try { const s = JSON.parse(guardada); if (s && PERM[s.rol]) { iniciarSesion(s); return; } } catch (e) { } }
+  if (!S.sesion) { mostrarLogin(); cargarPersonal(); }
+});
+
+// ─── SUSCRIPCIONES ───────────────────────────────────────────────────────────
+const aLista = v => Object.entries(v || {}).map(([id, x]) => Object.assign({ id }, x)).sort((a, b) => (b.ts || 0) - (a.ts || 0));
+function suscribir() {
+  S.subs.forEach(u => u()); S.subs = [];
+  const err = () => setStatus(false, "Sin permiso de lectura");
+  S.subs.push(onValue(ref(db, PIL + "/mediciones"), s => { S.med = aLista(s.val()); renderRegistro(); renderInforme(); renderGasto(); }, err));
+  S.subs.push(onValue(ref(db, PIL + "/compras"), s => { S.compras = aLista(s.val()); renderGasto(); renderInforme(); }, err));
+  S.subs.push(onValue(ref(db, PIL + "/vaciados"), s => { S.vac = aLista(s.val()); renderVac(); }, err));
+}
+
+// ─── PESTAÑAS ────────────────────────────────────────────────────────────────
+const tabs = [...document.querySelectorAll(".tab")];
+function showTab(name) {
+  tabs.forEach(b => b.setAttribute("aria-selected", b.dataset.tab === name ? "true" : "false"));
+  ["dosis", "registro", "informe", "gasto", "vaciado", "guia"].forEach(n => { $("#p-" + n).hidden = n !== name; });
+  ls.set("pil_tab", name);
+}
+tabs.forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+
+// ─── DOSIFICAR ───────────────────────────────────────────────────────────────
+const segP = $("#segPileta");
+segP.innerHTML = PILETAS.map(p => `<button type="button" data-p="${p.id}" aria-pressed="${p.id === S.pileta}">${p.vol} m³<small>${esc(p.nombre)}</small></button>`).join("");
+segP.addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; S.pileta = b.dataset.p; [...segP.children].forEach(x => x.setAttribute("aria-pressed", x === b)); S.aplicadaTocada = false; calc(); });
+const segT = $("#segTipo");
+[...segT.children].forEach(x => x.setAttribute("aria-pressed", x.dataset.tipo === S.tipo));
+segT.addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; S.tipo = b.dataset.tipo; [...segT.children].forEach(x => x.setAttribute("aria-pressed", x === b)); ls.set("pil_tipo", S.tipo); S.aplicadaTocada = false; calc(); });
+$("#inFecha").value = today;
+["#inCl", "#inPh"].forEach(s => $(s).addEventListener("input", () => { S.aplicadaTocada = false; calc(); }));
+$("#inAplicada").addEventListener("input", () => { S.aplicadaTocada = true; });
+function calc() {
+  const p = PILETAS.find(x => x.id === S.pileta);
+  const cl = parseFloat($("#inCl").value), ph = parseFloat($("#inPh").value);
+  if (!(cl >= 0)) { $("#resDosis").textContent = "—"; $("#resPill").innerHTML = ""; $("#resCalc").textContent = "Ingresa la lectura de cloro libre."; $("#resAlerts").innerHTML = ""; if (!S.aplicadaTocada) $("#inAplicada").value = ""; return; }
+  const d = dosis(p.vol, cl, S.tipo), f = S.tipo === "5" ? 20 : 10, st = estadoCl(cl), al = [];
+  $("#resDosis").textContent = d + " mL";
+  $("#resPill").innerHTML = `<span class="pill ${st.cls}">${st.txt}</span>`;
+  $("#resCalc").textContent = cl < META ? `(0,8 − ${nf(cl)}) × ${p.vol} m³ × ${f} = ${nf((META - cl) * p.vol * f, 0)} mL · cloro al ${S.tipo}%` : `${p.nombre} · cloro al ${S.tipo}%`;
+  if (cl > CL_ALTO) al.push(["bad", "No agregar cloro y avisar al supervisor. El exceso daña las plantas de alrededor."]);
+  else if (cl >= META) al.push(["ok", "No agregar. Volver a medir mañana."]);
+  if (ph > PH_MAX) al.push(["warn", "pH alto: el cloro rinde menos. Corregir con reductor de pH, separado varias horas del cloro."]);
+  else if (ph < PH_MIN && ph > 0) al.push(["warn", "pH bajo: corregir con incrementador de pH antes de seguir clorando."]);
+  if (d > 0) al.push(["warn", "Diluir en balde y aplicar lejos de los bordes con plantas."]);
+  $("#resAlerts").innerHTML = al.map(a => `<li class="${a[0]}">${esc(a[1])}</li>`).join("");
+  if (!S.aplicadaTocada) $("#inAplicada").value = d;
+}
+$("#fDosis").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!can("registrar")) return;
+  const cl = parseFloat($("#inCl").value), ph = parseFloat($("#inPh").value), ap = parseFloat($("#inAplicada").value);
+  if (!(cl >= 0)) { toast("Falta la lectura de cloro"); return; }
+  const p = PILETAS.find(x => x.id === S.pileta);
+  const doc = { fecha: $("#inFecha").value || today, ts: Date.now(), pileta: p.id, tipo: S.tipo, cl, ph: ph > 0 ? ph : null, dosisRec: dosis(p.vol, cl, S.tipo), dosis: ap >= 0 ? ap : 0, resp: S.sesion.nombre, respId: S.sesion.id, nota: $("#inNota").value.trim() };
+  $("#btnGuardar").disabled = true;
+  try { await push(ref(db, PIL + "/mediciones"), doc); toast("Registro guardado"); $("#inNota").value = ""; $("#inCl").value = ""; $("#inPh").value = ""; S.aplicadaTocada = false; calc(); }
+  catch (err) { toast("No se pudo guardar. Revisa la conexión."); }
+  $("#btnGuardar").disabled = false;
+});
+
+// ─── REGISTRO ────────────────────────────────────────────────────────────────
+$("#filPileta").innerHTML += PILETAS.map(p => `<option value="${p.id}">${esc(p.nombre)}</option>`).join("");
+$("#filPileta").addEventListener("change", renderRegistro);
+function renderRegistro() {
+  const f = $("#filPileta").value, rows = S.med.filter(m => !f || m.pileta === f);
+  if (!rows.length) { $("#regBody").innerHTML = `<div class="empty">Aún no hay mediciones. Se registran en la pestaña Dosificar.</div>`; return; }
+  const borrar = can("borrar");
+  $("#regBody").innerHTML = `<div class="tablebox"><table><thead><tr><th>Fecha</th><th>Pileta</th><th class="num">Cloro ppm</th><th class="num">pH</th><th>Producto</th><th class="num">Dosis mL</th><th>Estado</th><th>Responsable</th><th>Observación</th>${borrar ? "<th></th>" : ""}</tr></thead><tbody>${rows.map(m => {
+    const st = estadoCl(m.cl), phBad = m.ph != null && (m.ph < PH_MIN || m.ph > PH_MAX);
+    const del = !borrar ? "" : `<td>${S.borrar === m.id ? `<button class="btn danger" data-del="${esc(m.id)}">Confirmar</button> <button class="btn ghost sm" data-cancel="1">No</button>` : `<button class="btn danger" data-ask="${esc(m.id)}">Borrar</button>`}</td>`;
+    return `<tr><td>${fmtFecha(m.fecha)}</td><td>${esc(pName(m.pileta))}</td><td class="num">${nf(m.cl)}</td><td class="num">${m.ph != null ? nf(m.ph) : "—"}${phBad ? ' <span class="pill warn">pH</span>' : ""}</td><td>Cloro ${esc(m.tipo)}%</td><td class="num">${Math.round(m.dosis || 0)}</td><td><span class="pill ${st.cls}">${st.txt}</span></td><td>${esc(m.resp || "—")}</td><td style="white-space:normal;min-width:160px">${esc(m.nota || "")}</td>${del}</tr>`;
+  }).join("")}</tbody></table></div><div class="small muted">${rows.length} registros</div>`;
+}
+$("#regBody").addEventListener("click", async e => {
+  const a = e.target.closest("[data-ask]"), d = e.target.closest("[data-del]"), c = e.target.closest("[data-cancel]");
+  if (a) { S.borrar = a.dataset.ask; renderRegistro(); }
+  else if (c) { S.borrar = null; renderRegistro(); }
+  else if (d && can("borrar")) { try { await remove(ref(db, PIL + "/mediciones/" + d.dataset.del)); toast("Registro borrado"); } catch (err) { toast("No se pudo borrar"); } S.borrar = null; }
+});
+
+// ─── PRECIOS Y CONSUMO ───────────────────────────────────────────────────────
+function precioLitro(tipo) {
+  const c = S.compras.filter(x => x.tipo === tipo && x.litros > 0 && x.costo > 0);
+  const l = c.reduce((s, x) => s + x.litros, 0), m = c.reduce((s, x) => s + x.costo, 0);
+  return l > 0 ? m / l : null;
+}
+const usadoL = (list, tipo) => list.filter(m => m.tipo === tipo).reduce((s, m) => s + (m.dosis || 0), 0) / 1000;
+
+// ─── INFORME SEMANAL ─────────────────────────────────────────────────────────
+$("#infFecha").value = ymd(monday(new Date()));
+$("#infFecha").addEventListener("change", renderInforme);
+let resumenTxt = "";
+function renderInforme() {
+  const lun = monday(parseYmd($("#infFecha").value || today)), a = ymd(lun), b = ymd(addDays(lun, 6));
+  const sem = S.med.filter(m => m.fecha >= a && m.fecha <= b);
+  const p10 = precioLitro("10"), p5 = precioLitro("5"), L10 = usadoL(sem, "10"), L5 = usadoL(sem, "5");
+  const costoOk = (L10 === 0 || p10 != null) && (L5 === 0 || p5 != null);
+  const costo = (p10 != null ? L10 * p10 : 0) + (p5 != null ? L5 * p5 : 0);
+  const fuera = m => m.cl < CL_MIN || m.cl > CL_ALTO || (m.ph != null && (m.ph < PH_MIN || m.ph > PH_MAX));
+  const nFuera = sem.filter(fuera).length, rango = `${fmtFecha(a)} al ${fmtFecha(b)}`;
+  if (!sem.length) { $("#infBody").innerHTML = `<div class="small muted">${rango}</div><div class="empty">No hay mediciones registradas esta semana.</div>`; resumenTxt = ""; return; }
+  const avg = (arr, k) => { const xs = arr.map(m => m[k]).filter(x => x != null); return xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : null; };
+  const filas = PILETAS.map(p => { const r = sem.filter(m => m.pileta === p.id); return { p, n: r.length, cl: avg(r, "cl"), ph: avg(r, "ph"), fuera: r.filter(fuera).length, ml: r.reduce((s, m) => s + (m.dosis || 0), 0), c: r.reduce((s, m) => s + (m.dosis || 0) * ((m.tipo === "5" ? p5 : p10) || 0) / 1000, 0) }; });
+  const dias = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"].map((n, i) => { const f = ymd(addDays(lun, i)); return { n, ml: sem.filter(m => m.fecha === f).reduce((s, m) => s + (m.dosis || 0), 0) }; });
+  const max = Math.max(...dias.map(d => d.ml), 1), W = 700, H = 210, top = 26, bot = 30, bw = 60, gap = (W - 40 - 7 * bw) / 6;
+  const bars = dias.map((d, i) => { const h = (d.ml / max) * (H - top - bot), x = 20 + i * (bw + gap), y = H - bot - h; return `<rect class="bar" x="${x}" y="${y}" width="${bw}" height="${Math.max(h, 0)}" rx="3"></rect><text class="val" x="${x + bw / 2}" y="${y - 7}" text-anchor="middle">${d.ml ? Math.round(d.ml) : ""}</text><text x="${x + bw / 2}" y="${H - 10}" text-anchor="middle">${d.n}</text>`; }).join("");
+  $("#infBody").innerHTML = `<div class="small muted">${rango}</div>
+  <div class="kpis">
+    <div class="kpi"><b>${sem.length}</b><span>mediciones</span></div>
+    <div class="kpi"><b>${nFuera}</b><span>lecturas fuera de rango</span></div>
+    <div class="kpi"><b>${nf(L10, 2)} L</b><span>cloro 10% usado</span></div>
+    <div class="kpi"><b>${nf(L5, 2)} L</b><span>cloro 5% usado</span></div>
+    <div class="kpi"><b>${costoOk ? money(costo) : "—"}</b><span>${costoOk ? "gasto estimado" : "falta precio: registra una compra"}</span></div>
+  </div>
+  <div class="tablebox"><table><thead><tr><th>Pileta</th><th class="num">Mediciones</th><th class="num">Cloro prom.</th><th class="num">pH prom.</th><th class="num">Fuera de rango</th><th class="num">Cloro aplicado</th><th class="num">Gasto</th></tr></thead><tbody>
+  ${filas.map(f => `<tr><td>${esc(f.p.nombre)}</td><td class="num">${f.n}</td><td class="num">${f.cl != null ? nf(f.cl, 2) : "—"}</td><td class="num">${f.ph != null ? nf(f.ph, 2) : "—"}</td><td class="num">${f.fuera}</td><td class="num">${Math.round(f.ml)} mL</td><td class="num">${costoOk ? money(f.c) : "—"}</td></tr>`).join("")}
+  </tbody></table></div>
+  <div><h3 style="margin:0 0 6px">Cloro aplicado por día (mL, todas las piletas)</h3>
+  <div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:420px;display:block" role="img" aria-label="Cloro aplicado por día"><line class="base" x1="10" y1="${H - bot}" x2="${W - 10}" y2="${H - bot}"></line>${bars}</svg></div></div>`;
+  resumenTxt = `Informe semanal piletas — ${rango}\nMediciones: ${sem.length} · Fuera de rango: ${nFuera}\nCloro usado: ${nf(L10, 2)} L al 10% · ${nf(L5, 2)} L al 5%` + (costoOk ? ` · Gasto estimado: ${money(costo)}` : "") + "\n\n" +
+    filas.map(f => `${f.p.nombre}: ${f.n} mediciones, cloro prom. ${f.cl != null ? nf(f.cl, 2) : "—"} ppm, pH prom. ${f.ph != null ? nf(f.ph, 2) : "—"}, ${f.fuera} fuera de rango, ${Math.round(f.ml)} mL aplicados`).join("\n");
+}
+$("#btnCopiar").addEventListener("click", () => {
+  if (!resumenTxt) { toast("No hay datos esta semana"); return; }
+  const ok = () => toast("Resumen copiado");
+  const fallback = () => { const ta = document.createElement("textarea"); ta.value = resumenTxt; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); ok(); } catch (e) { toast("No se pudo copiar"); } ta.remove(); };
+  if (navigator.clipboard) navigator.clipboard.writeText(resumenTxt).then(ok, fallback); else fallback();
+});
+
+// ─── GASTO Y STOCK ───────────────────────────────────────────────────────────
+$("#cFecha").value = today;
+function renderGasto() {
+  const hoy = new Date(), hace28 = ymd(addDays(hoy, -28));
+  const mesIni = ymd(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+  const mesAntIni = ymd(new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1)), mesAntFin = ymd(new Date(hoy.getFullYear(), hoy.getMonth(), 0));
+  const card = tipo => {
+    const comprado = S.compras.filter(c => c.tipo === tipo).reduce((s, c) => s + (c.litros || 0), 0);
+    const stock = comprado - usadoL(S.med, tipo), sem = usadoL(S.med.filter(m => m.fecha >= hace28), tipo) / 4, pl = precioLitro(tipo);
+    const mes = usadoL(S.med.filter(m => m.fecha >= mesIni), tipo), mesA = usadoL(S.med.filter(m => m.fecha >= mesAntIni && m.fecha <= mesAntFin), tipo);
+    const semanas = sem > 0 ? stock / sem : null, alerta = semanas != null && semanas < 2 && comprado > 0;
+    return `<div style="display:flex;flex-direction:column;gap:10px"><div class="actions" style="justify-content:space-between"><h3>Cloro ${tipo}%</h3>${comprado > 0 ? `<span class="pill ${stock <= 0 ? "bad" : alerta ? "warn" : "ok"}">${stock <= 0 ? "Sin stock" : alerta ? "Stock bajo" : "Stock OK"}</span>` : '<span class="pill info">Sin compras</span>'}</div>
+    <div class="kpis">
+      <div class="kpi"><b>${comprado > 0 ? nf(stock, 1) + " L" : "—"}</b><span>stock estimado</span></div>
+      <div class="kpi"><b>${nf(sem, 2)} L</b><span>consumo semanal (prom. 4 sem.)</span></div>
+      <div class="kpi"><b>${semanas != null && comprado > 0 ? nf(Math.max(semanas, 0), 1) : "—"}</b><span>semanas de stock</span></div>
+      <div class="kpi"><b>${pl != null ? money(pl) : "—"}</b><span>precio por litro</span></div>
+      <div class="kpi"><b>${pl != null ? money(mes * pl) : nf(mes, 2) + " L"}</b><span>gasto mes actual</span></div>
+      <div class="kpi"><b>${pl != null ? money(mesA * pl) : nf(mesA, 2) + " L"}</b><span>gasto mes anterior</span></div>
+    </div></div>`;
+  };
+  $("#gastoBody").innerHTML = card("10") + '<hr class="sep">' + card("5") + `<div class="small muted">El stock se calcula como litros comprados menos las dosis registradas. Solo es confiable si todas las aplicaciones se registran.</div>`;
+  $("#comprasBody").innerHTML = S.compras.length ? `<div class="tablebox"><table><thead><tr><th>Fecha</th><th>Tipo</th><th class="num">Litros</th><th class="num">Costo</th><th>Nota</th><th>Registró</th></tr></thead><tbody>${S.compras.map(c => `<tr><td>${fmtFecha(c.fecha)}</td><td>Cloro ${esc(c.tipo)}%</td><td class="num">${nf(c.litros, 1)}</td><td class="num">${c.costo ? money(c.costo) : "—"}</td><td>${esc(c.prov || "")}</td><td>${esc(c.resp || "—")}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">Registra la primera compra para calcular stock y costo por litro.</div>`;
+}
+$("#fCompra").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!can("compras")) return;
+  const l = parseFloat($("#cLitros").value), c = parseFloat($("#cCosto").value);
+  if (!(l > 0)) { toast("Indica los litros"); return; }
+  try { await push(ref(db, PIL + "/compras"), { fecha: $("#cFecha").value || today, ts: Date.now(), tipo: $("#cTipo").value, litros: l, costo: c > 0 ? c : 0, prov: $("#cProv").value.trim(), resp: S.sesion.nombre }); toast("Compra guardada"); $("#cLitros").value = ""; $("#cCosto").value = ""; $("#cProv").value = ""; }
+  catch (err) { toast("No se pudo guardar la compra"); }
+});
+
+// ─── VACIADO ─────────────────────────────────────────────────────────────────
+const PASOS = ["Cloro suspendido al menos 3 días antes del vaciado.", "Cloro libre medido con kit DPD y en 0 ppm (o neutralizado con tiosulfato de sodio).", "Bomba sumergible y manguera dirigidas al desagüe o sumidero, nunca al jardín.", "Bordes con plantas protegidos con plástico o geotextil.", "Lavado con hidrolavadora a baja presión, sin cloro ni detergentes.", "Al rellenar: dosis inicial según tabla (lectura 0,0), con la pileta llena."];
+$("#vPileta").innerHTML = PILETAS.map(p => `<option value="${p.id}">${esc(p.nombre)}</option>`).join("");
+$("#vChecks").innerHTML = PASOS.map((t, i) => `<label class="check" for="vc${i}"><input type="checkbox" id="vc${i}"><span class="n">${i + 1}</span><span>${esc(t)}</span></label>`).join("");
+function checkVac() {
+  const all = PASOS.every((_, i) => $("#vc" + i).checked), al = [], susp = $("#vSusp").value, cl = parseFloat($("#vCl").value);
+  if (susp) { const dias = Math.round((parseYmd(today) - parseYmd(susp)) / 864e5); if (dias < 3) al.push(["warn", `Han pasado ${Math.max(dias, 0)} días desde la suspensión. Esperar al menos 3 o neutralizar.`]); }
+  if (cl > 0) al.push(["bad", "El agua aún tiene cloro: no vaciar hacia ningún jardín. Neutralizar con tiosulfato y volver a medir."]);
+  $("#vAlerts").innerHTML = al.map(a => `<li class="${a[0]}">${esc(a[1])}</li>`).join("");
+  $("#btnVaciado").disabled = !(all && $("#vCl").value !== "" && cl <= 0 && can("vaciado"));
+}
+$("#fVaciado").addEventListener("input", checkVac);
+$("#fVaciado").addEventListener("change", checkVac);
+$("#fVaciado").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!can("vaciado")) return;
+  try { await push(ref(db, PIL + "/vaciados"), { fecha: today, ts: Date.now(), pileta: $("#vPileta").value, suspension: $("#vSusp").value || null, cl: parseFloat($("#vCl").value) || 0, resp: S.sesion.nombre }); toast("Vaciado registrado"); PASOS.forEach((_, i) => { $("#vc" + i).checked = false; }); $("#vCl").value = ""; checkVac(); }
+  catch (err) { toast("No se pudo registrar"); }
+});
+function renderVac() {
+  $("#vacBody").innerHTML = S.vac.length ? `<div class="tablebox"><table><thead><tr><th>Fecha</th><th>Pileta</th><th>Cloro suspendido</th><th class="num">Cloro verificado</th><th>Responsable</th></tr></thead><tbody>${S.vac.map(v => `<tr><td>${fmtFecha(v.fecha)}</td><td>${esc(pName(v.pileta))}</td><td>${fmtFecha(v.suspension)}</td><td class="num">${nf(v.cl || 0)} ppm</td><td>${esc(v.resp || "—")}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">Aún no hay vaciados registrados.</div>`;
+}
+
+// ─── GUÍA: TABLA DE DOSIS ────────────────────────────────────────────────────
+(() => {
+  const lects = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7];
+  const head = `<thead><tr><th>Lectura ppm</th>${PILETAS.map(p => `<th class="num">${p.vol} m³ · 10%</th>`).join("")}${PILETAS.map(p => `<th class="num">${p.vol} m³ · 5%</th>`).join("")}</tr></thead>`;
+  const body = lects.map(l => `<tr><td>${nf(l)}</td>${PILETAS.map(p => `<td class="num">${dosis(p.vol, l, "10")}</td>`).join("")}${PILETAS.map(p => `<td class="num">${dosis(p.vol, l, "5")}</td>`).join("")}</tr>`).join("") + `<tr><td>0,8–1,5</td><td colspan="6"><b>No agregar</b></td></tr><tr><td>&gt; 1,5</td><td colspan="6"><b>No agregar · avisar al supervisor</b></td></tr>`;
+  $("#tblDosis").innerHTML = head + "<tbody>" + body + "</tbody>";
+})();
+
+calc(); renderRegistro(); renderInforme(); renderGasto(); renderVac();
+</script>
+</body>
+</html>
