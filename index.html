@@ -130,6 +130,7 @@ ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
   <button class="tab" role="tab" data-tab="gasto">Cloro y gasto</button>
   <button class="tab" role="tab" data-tab="vaciado">Vaciado</button>
   <button class="tab" role="tab" data-tab="guia">Guía</button>
+  <button class="tab" role="tab" data-tab="personal">Personal</button>
 </nav>
 </div>
 
@@ -259,6 +260,24 @@ ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
     <div class="tablebox"><table id="tblDosis"></table></div>
   </div>
 </section>
+
+<section id="p-personal" class="grid2" hidden>
+  <form class="card" id="fPers" autocomplete="off">
+    <h2 id="persTitulo">Agregar persona</h2>
+    <p class="small muted" style="margin:0">Personal que mantiene las piletas. Aparece en la pantalla de ingreso para elegir su nombre.</p>
+    <label for="psNombre">Nombre completo<input id="psNombre" type="text"></label>
+    <label for="psCargo">Cargo<select id="psCargo"><option value="operador">Operador de piletas</option><option value="supervisor">Supervisor</option></select></label>
+    <label for="psPin" id="psPinBox" hidden>PIN de 4 dígitos (para ingresar como supervisor)<input id="psPin" type="text" inputmode="numeric" maxlength="4" placeholder="1234"></label>
+    <div class="err" id="psErr"></div>
+    <div class="actions">
+      <button class="btn" type="submit" id="psGuardar">Agregar</button>
+      <button class="btn ghost" type="button" id="psCancelar" hidden>Cancelar edición</button>
+    </div>
+    <hr class="sep">
+    <label class="check" for="psDAV"><input type="checkbox" id="psDAV"><span>Mostrar también al personal del DAV en el ingreso (por si alguien del equipo reemplaza).</span></label>
+  </form>
+  <div class="card"><h2>Personal de piletas</h2><div id="persBody"></div></div>
+</section>
 </div>
 </div>
 
@@ -266,7 +285,7 @@ ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, onValue, push, remove, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, onValue, push, remove, get, set, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // ─── FIREBASE (mismo proyecto que Estadio Verde) ─────────────────────────────
@@ -302,8 +321,8 @@ function getRolByEmail(email, extra = {}) {
 const PERM = {
   trabajador:  { tabs: ["dosis", "registro", "guia"], registrar: true },
   supervisor:  { tabs: ["dosis", "registro", "informe", "gasto", "vaciado", "guia"], registrar: true, compras: true, vaciado: true },
-  jefa:        { tabs: ["dosis", "registro", "informe", "gasto", "vaciado", "guia"], registrar: true, compras: true, vaciado: true, borrar: true },
-  programador: { tabs: ["dosis", "registro", "informe", "gasto", "vaciado", "guia"], registrar: true, compras: true, vaciado: true, borrar: true },
+  jefa:        { tabs: ["dosis", "registro", "informe", "gasto", "vaciado", "guia", "personal"], registrar: true, compras: true, vaciado: true, borrar: true, personal: true },
+  programador: { tabs: ["dosis", "registro", "informe", "gasto", "vaciado", "guia", "personal"], registrar: true, compras: true, vaciado: true, borrar: true, personal: true },
   gerencia:    { tabs: ["registro", "informe", "gasto", "guia"] },
 };
 const ROL_TXT = { trabajador: "Jardinero", supervisor: "Supervisor", jefa: "Jefa AV", programador: "Jefa AV", gerencia: "Gerencia" };
@@ -345,35 +364,45 @@ const S = { med: [], compras: [], vac: [], personal: [], pines: {}, pileta: "p15
 const can = k => !!(S.sesion && PERM[S.sesion.rol] && PERM[S.sesion.rol][k]);
 
 // ─── INGRESO ─────────────────────────────────────────────────────────────────
-function normalizaPersonal(v) {
+// Personal de ingreso: lista propia de piletas (piletas/personal) + opcionalmente el personal del DAV
+function normalizaDAV(v, pines) {
   const arr = Array.isArray(v) ? v : Object.values(v || {});
-  return arr.filter(p => p && p.nombre && !/jef/i.test(p.cargo || "") && !/desvinc|inactiv|retir|baja/i.test(p.estado || ""));
+  return arr.filter(p => p && p.nombre && !/jef/i.test(p.cargo || "") && !/desvinc|inactiv|retir|baja/i.test(p.estado || ""))
+    .map(p => ({ id: "dav_" + p.id, nombre: p.nombre, sup: /supervisor/i.test(p.cargo || ""), pin: String(pines[String(p.id)] || p.pinSupervisor || ""), origen: "DAV" }));
 }
 async function cargarPersonal() {
   try {
-    const [per, pines] = await Promise.all([get(ref(db, ROOT + "/personal")), get(ref(db, ROOT + "/pines_supervisor"))]);
-    S.personal = normalizaPersonal(per.val());
-    S.pines = pines.val() || {};
-    $("#lgPersona").innerHTML = '<option value="">Selecciona tu nombre</option>' + S.personal.map(p => `<option value="${esc(p.id)}">${esc(p.nombre)}</option>`).join("");
+    const [pil, cfg] = await Promise.all([get(ref(db, PIL + "/personal")), get(ref(db, PIL + "/config"))]);
+    const lista = Object.entries(pil.val() || {}).filter(([, p]) => p && p.nombre && p.activo !== false)
+      .map(([k, p]) => ({ id: "pil_" + k, nombre: p.nombre, sup: p.cargo === "supervisor", pin: String(p.pin || ""), origen: "Piletas" }));
+    let dav = [];
+    if ((cfg.val() || {}).incluirDAV) {
+      const [per, pines] = await Promise.all([get(ref(db, ROOT + "/personal")), get(ref(db, ROOT + "/pines_supervisor"))]);
+      dav = normalizaDAV(per.val(), pines.val() || {});
+    }
+    S.personal = [...lista.sort((a, b) => a.nombre.localeCompare(b.nombre)), ...dav];
+    if (!S.personal.length) { $("#lgPersona").innerHTML = '<option value="">Aún no hay personal cargado</option>'; $("#lgErr1").textContent = "La jefatura debe agregar al personal en la pestaña Personal."; return; }
+    const opts = arr => arr.map(p => `<option value="${esc(p.id)}">${esc(p.nombre)}${p.sup ? " (supervisor)" : ""}</option>`).join("");
+    $("#lgPersona").innerHTML = '<option value="">Selecciona tu nombre</option>' +
+      (dav.length ? `<optgroup label="Piletas">${opts(lista)}</optgroup><optgroup label="Áreas Verdes">${opts(dav)}</optgroup>` : opts(lista));
+    $("#lgErr1").textContent = "";
   } catch (e) {
     $("#lgPersona").innerHTML = '<option value="">No se pudo cargar el personal</option>';
   }
 }
 $("#lgPersona").addEventListener("change", () => {
-  const p = S.personal.find(x => String(x.id) === $("#lgPersona").value);
-  $("#lgPinBox").hidden = !(p && /supervisor/i.test(p.cargo || ""));
+  const p = S.personal.find(x => x.id === $("#lgPersona").value);
+  $("#lgPinBox").hidden = !(p && p.sup);
   $("#btnEntrar").disabled = !p; $("#lgErr1").textContent = "";
 });
 $("#btnEntrar").addEventListener("click", () => {
-  const p = S.personal.find(x => String(x.id) === $("#lgPersona").value);
+  const p = S.personal.find(x => x.id === $("#lgPersona").value);
   if (!p) return;
-  const esSup = /supervisor/i.test(p.cargo || "");
-  if (esSup) {
-    const guardado = String(S.pines[String(p.id)] || p.pinSupervisor || "");
-    if (!guardado) { $("#lgErr1").textContent = "PIN no configurado. Se configura en Estadio Verde → Personal."; return; }
-    if ($("#lgPin").value !== guardado) { $("#lgErr1").textContent = "PIN incorrecto."; return; }
+  if (p.sup) {
+    if (!p.pin) { $("#lgErr1").textContent = "Este supervisor no tiene PIN. La jefatura lo asigna en la pestaña Personal."; return; }
+    if ($("#lgPin").value !== p.pin) { $("#lgErr1").textContent = "PIN incorrecto."; return; }
   }
-  iniciarSesion({ id: String(p.id), nombre: p.nombre, rol: esSup ? "supervisor" : "trabajador", local: true });
+  iniciarSesion({ id: p.id, nombre: p.nombre, rol: p.sup ? "supervisor" : "trabajador", local: true });
 });
 $("#btnEmail").addEventListener("click", async () => {
   const email = $("#lgEmail").value.trim().toLowerCase(), pass = $("#lgPass").value;
@@ -436,13 +465,17 @@ function suscribir() {
   S.subs.push(onValue(ref(db, PIL + "/mediciones"), s => { S.med = aLista(s.val()); renderRegistro(); renderInforme(); renderGasto(); }, err));
   S.subs.push(onValue(ref(db, PIL + "/compras"), s => { S.compras = aLista(s.val()); renderGasto(); renderInforme(); }, err));
   S.subs.push(onValue(ref(db, PIL + "/vaciados"), s => { S.vac = aLista(s.val()); renderVac(); }, err));
+  if (can("personal")) {
+    S.subs.push(onValue(ref(db, PIL + "/personal"), s => { S.pers = Object.entries(s.val() || {}).map(([id, x]) => Object.assign({ id }, x)).sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "")); renderPers(); }, err));
+    S.subs.push(onValue(ref(db, PIL + "/config"), s => { $("#psDAV").checked = !!(s.val() || {}).incluirDAV; }, err));
+  }
 }
 
 // ─── PESTAÑAS ────────────────────────────────────────────────────────────────
 const tabs = [...document.querySelectorAll(".tab")];
 function showTab(name) {
   tabs.forEach(b => b.setAttribute("aria-selected", b.dataset.tab === name ? "true" : "false"));
-  ["dosis", "registro", "informe", "gasto", "vaciado", "guia"].forEach(n => { $("#p-" + n).hidden = n !== name; });
+  ["dosis", "registro", "informe", "gasto", "vaciado", "guia", "personal"].forEach(n => { $("#p-" + n).hidden = n !== name; });
   ls.set("pil_tab", name);
 }
 tabs.forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
@@ -610,6 +643,49 @@ $("#fVaciado").addEventListener("submit", async e => {
 function renderVac() {
   $("#vacBody").innerHTML = S.vac.length ? `<div class="tablebox"><table><thead><tr><th>Fecha</th><th>Pileta</th><th>Cloro suspendido</th><th class="num">Cloro verificado</th><th>Responsable</th></tr></thead><tbody>${S.vac.map(v => `<tr><td>${fmtFecha(v.fecha)}</td><td>${esc(pName(v.pileta))}</td><td>${fmtFecha(v.suspension)}</td><td class="num">${nf(v.cl || 0)} ppm</td><td>${esc(v.resp || "—")}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">Aún no hay vaciados registrados.</div>`;
 }
+
+// ─── PERSONAL DE PILETAS (solo jefatura) ─────────────────────────────────────
+S.pers = []; S.persEdit = null; S.persBorrar = null;
+const syncPinBox = () => { $("#psPinBox").hidden = $("#psCargo").value !== "supervisor"; };
+$("#psCargo").addEventListener("change", syncPinBox);
+function limpiarPers() { S.persEdit = null; $("#psNombre").value = ""; $("#psCargo").value = "operador"; $("#psPin").value = ""; $("#psErr").textContent = ""; $("#persTitulo").textContent = "Agregar persona"; $("#psGuardar").textContent = "Agregar"; $("#psCancelar").hidden = true; syncPinBox(); }
+$("#psCancelar").addEventListener("click", limpiarPers);
+$("#fPers").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!can("personal")) return;
+  const nombre = $("#psNombre").value.trim(), cargo = $("#psCargo").value, pin = $("#psPin").value.trim();
+  if (nombre.length < 3) { $("#psErr").textContent = "Escribe el nombre completo."; return; }
+  if (cargo === "supervisor" && !/^\d{4}$/.test(pin)) { $("#psErr").textContent = "El supervisor necesita un PIN de 4 números."; return; }
+  const data = { nombre, cargo, pin: cargo === "supervisor" ? pin : null, activo: true };
+  try {
+    if (S.persEdit) { await update(ref(db, PIL + "/personal/" + S.persEdit), data); toast("Datos actualizados"); }
+    else { await push(ref(db, PIL + "/personal"), Object.assign({ ts: Date.now() }, data)); toast("Persona agregada"); }
+    limpiarPers();
+  } catch (err) { $("#psErr").textContent = "No se pudo guardar. Revisa la conexión."; }
+});
+$("#psDAV").addEventListener("change", async () => {
+  try { await update(ref(db, PIL + "/config"), { incluirDAV: $("#psDAV").checked }); toast($("#psDAV").checked ? "El personal del DAV aparecerá en el ingreso" : "Solo el personal de piletas aparecerá en el ingreso"); }
+  catch (e) { toast("No se pudo guardar"); }
+});
+function renderPers() {
+  if (!S.pers.length) { $("#persBody").innerHTML = `<div class="empty">Aún no hay personal. Agrégalo con el formulario.</div>`; return; }
+  $("#persBody").innerHTML = `<div class="tablebox"><table><thead><tr><th>Nombre</th><th>Cargo</th><th>PIN</th><th>Estado</th><th></th></tr></thead><tbody>${S.pers.map(p => {
+    const acc = S.persBorrar === p.id
+      ? `<button class="btn danger" type="button" data-pdel="${esc(p.id)}">Confirmar</button> <button class="btn ghost sm" type="button" data-pcancel="1">No</button>`
+      : `<button class="btn ghost sm" type="button" data-pedit="${esc(p.id)}">Editar</button> <button class="btn ghost sm" type="button" data-ptog="${esc(p.id)}">${p.activo === false ? "Activar" : "Desactivar"}</button> <button class="btn danger" type="button" data-pask="${esc(p.id)}">Borrar</button>`;
+    return `<tr><td>${esc(p.nombre)}</td><td>${p.cargo === "supervisor" ? "Supervisor" : "Operador"}</td><td class="num">${p.cargo === "supervisor" ? (p.pin ? "••••" : "—") : ""}</td><td><span class="pill ${p.activo === false ? "info" : "ok"}">${p.activo === false ? "Inactivo" : "Activo"}</span></td><td>${acc}</td></tr>`;
+  }).join("")}</tbody></table></div><div class="small muted">Desactiva a quien deje de trabajar en piletas: sus registros se conservan y deja de aparecer en el ingreso.</div>`;
+}
+$("#persBody").addEventListener("click", async e => {
+  const t = e.target.closest("button"); if (!t || !can("personal")) return;
+  const d = t.dataset;
+  if (d.pedit) { const p = S.pers.find(x => x.id === d.pedit); if (!p) return; S.persEdit = p.id; $("#psNombre").value = p.nombre; $("#psCargo").value = p.cargo === "supervisor" ? "supervisor" : "operador"; $("#psPin").value = p.pin || ""; syncPinBox(); $("#persTitulo").textContent = "Editar persona"; $("#psGuardar").textContent = "Guardar cambios"; $("#psCancelar").hidden = false; $("#psNombre").focus(); }
+  else if (d.ptog) { const p = S.pers.find(x => x.id === d.ptog); try { await update(ref(db, PIL + "/personal/" + d.ptog), { activo: p.activo === false }); } catch (err) { toast("No se pudo cambiar"); } }
+  else if (d.pask) { S.persBorrar = d.pask; renderPers(); }
+  else if (d.pcancel) { S.persBorrar = null; renderPers(); }
+  else if (d.pdel) { try { await remove(ref(db, PIL + "/personal/" + d.pdel)); toast("Persona borrada"); } catch (err) { toast("No se pudo borrar"); } S.persBorrar = null; }
+});
+renderPers();
 
 // ─── GUÍA: TABLA DE DOSIS ────────────────────────────────────────────────────
 (() => {
