@@ -46,7 +46,7 @@ header h1{margin:0;font-size:1.65rem;line-height:1.15;text-wrap:balance}
 label{font-size:.85rem;font-weight:600;color:var(--muted);display:flex;flex-direction:column;gap:5px}
 input,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-height:44px;width:100%}
 .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
-.seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px}
+.seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px}
 .seg button{font:inherit;font-weight:600;min-height:48px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;cursor:pointer;padding:6px 8px;line-height:1.2}
 .seg button small{display:block;font-weight:400;color:var(--muted);font-size:.78rem}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
@@ -69,6 +69,7 @@ th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);white
 th{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:var(--surface-2)}
 td.num,th.num{text-align:right;font-family:var(--f-mono)}
 tr:last-child td{border-bottom:0}
+tr.zona td{background:var(--accent-soft);font-weight:700}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
 .kpi{background:var(--surface-2);border-radius:8px;padding:12px}
 .kpi b{display:block;font-family:var(--f-mono);font-size:1.45rem;font-variant-numeric:tabular-nums}
@@ -85,6 +86,12 @@ ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
 .login{max-width:460px;margin:0 auto;width:100%}
 .err{color:var(--bad);font-size:.85rem}
 .sep{border:0;border-top:1px solid var(--line);margin:4px 0}
+.pwbox{position:relative;display:block}
+.pwbox input{padding-right:84px}
+.pwtoggle{position:absolute;right:4px;top:50%;transform:translateY(-50%);font:inherit;font-size:.85rem;font-weight:600;color:var(--accent);background:transparent;border:0;border-radius:6px;padding:0 12px;min-height:38px;min-width:72px;cursor:pointer}
+.calcvol{background:var(--surface-2);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.inline{flex-direction:row;align-items:center;gap:8px}
+.inline select{width:auto}
 @media (prefers-reduced-motion:no-preference){.tab,.seg button,.btn{transition:background .15s,color .15s,border-color .15s}}
 </style>
 </head>
@@ -107,14 +114,18 @@ ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
   <div class="card">
     <h2>Personal en terreno</h2>
     <label for="lgPersona">Tu nombre<select id="lgPersona"><option value="">Cargando personal…</option></select></label>
-    <label for="lgPin" id="lgPinBox" hidden>PIN de supervisor (4 dígitos)<input id="lgPin" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></label>
+    <label for="lgPin" id="lgPinBox" hidden>PIN de supervisor (4 dígitos)
+      <span class="pwbox"><input id="lgPin" type="password" inputmode="numeric" maxlength="4" placeholder="••••"><button type="button" class="pwtoggle" data-for="lgPin" aria-label="Ver PIN">Ver</button></span>
+    </label>
     <div class="err" id="lgErr1"></div>
     <button class="btn" type="button" id="btnEntrar" disabled>Entrar</button>
     <hr class="sep">
     <h2>Jefatura y gerencia</h2>
     <p class="small muted" style="margin:0">Con el mismo correo y contraseña de Estadio Verde.</p>
     <label for="lgEmail">Correo<input id="lgEmail" type="email" autocomplete="username"></label>
-    <label for="lgPass">Contraseña<input id="lgPass" type="password" autocomplete="current-password"></label>
+    <label for="lgPass">Contraseña
+      <span class="pwbox"><input id="lgPass" type="password" autocomplete="current-password"><button type="button" class="pwtoggle" data-for="lgPass" aria-label="Ver contraseña">Ver</button></span>
+    </label>
     <div class="err" id="lgErr2"></div>
     <button class="btn ghost" type="button" id="btnEmail">Ingresar con correo</button>
   </div>
@@ -130,6 +141,7 @@ ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
   <button class="tab" role="tab" data-tab="gasto">Cloro y gasto</button>
   <button class="tab" role="tab" data-tab="vaciado">Vaciado</button>
   <button class="tab" role="tab" data-tab="guia">Guía</button>
+  <button class="tab" role="tab" data-tab="piletas">Piletas</button>
   <button class="tab" role="tab" data-tab="personal">Personal</button>
 </nav>
 </div>
@@ -137,6 +149,7 @@ ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
 <section id="p-dosis" class="grid2" hidden>
   <form class="card" id="fDosis" autocomplete="off">
     <h2>Medición y dosis</h2>
+    <div><div class="eyebrow" style="margin-bottom:6px">Zona</div><div class="seg" id="segZona"></div></div>
     <div><div class="eyebrow" style="margin-bottom:6px">Pileta</div><div class="seg" id="segPileta"></div></div>
     <div><div class="eyebrow" style="margin-bottom:6px">Cloro líquido en uso</div>
       <div class="seg" id="segTipo">
@@ -170,7 +183,10 @@ ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
 <section id="p-registro" class="card" hidden>
   <div class="actions" style="justify-content:space-between">
     <h2>Registro de mediciones</h2>
-    <label for="filPileta" style="flex-direction:row;align-items:center;gap:8px">Pileta<select id="filPileta" style="width:auto"><option value="">Todas</option></select></label>
+    <div class="actions">
+      <label for="filZona" class="inline">Zona<select id="filZona"></select></label>
+      <label for="filPileta" class="inline">Pileta<select id="filPileta"></select></label>
+    </div>
   </div>
   <div id="regBody"></div>
 </section>
@@ -179,7 +195,8 @@ ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
   <div class="actions" style="justify-content:space-between">
     <h2>Informe semanal</h2>
     <div class="actions">
-      <label for="infFecha" style="flex-direction:row;align-items:center;gap:8px">Semana del<input id="infFecha" type="date" style="width:auto"></label>
+      <label for="infZona" class="inline">Zona<select id="infZona"></select></label>
+      <label for="infFecha" class="inline">Semana del<input id="infFecha" type="date" style="width:auto"></label>
       <button class="btn ghost" type="button" id="btnCopiar">Copiar resumen</button>
     </div>
   </div>
@@ -187,7 +204,12 @@ ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
 </section>
 
 <section id="p-gasto" class="grid2" hidden>
-  <div class="card"><h2>Stock y gasto de cloro</h2><div id="gastoBody"></div></div>
+  <div class="card">
+    <h2>Stock y gasto de cloro</h2>
+    <div id="gastoBody"></div>
+    <h3>Consumo por zona</h3>
+    <div id="zonaGastoBody"></div>
+  </div>
   <div class="card">
     <form id="fCompra" autocomplete="off" style="display:flex;flex-direction:column;gap:14px">
       <h2>Registrar compra o ingreso</h2>
@@ -255,10 +277,42 @@ ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
     </ul>
   </div>
   <div class="card">
-    <h2>Tabla de dosis (mL)</h2>
+    <div class="actions" style="justify-content:space-between">
+      <h2>Tabla de dosis (mL)</h2>
+      <label for="guiaTipo" class="inline">Cloro<select id="guiaTipo"><option value="10">al 10%</option><option value="5">al 5%</option></select></label>
+    </div>
     <p class="small muted" style="margin:0">Para llevar el cloro libre a 0,8 ppm. Redondeado a 5 mL.</p>
     <div class="tablebox"><table id="tblDosis"></table></div>
   </div>
+</section>
+
+<section id="p-piletas" class="grid2" hidden>
+  <form class="card" id="fPil" autocomplete="off">
+    <h2 id="pilTitulo">Agregar pileta</h2>
+    <label for="plZona">Zona (macrozona de Estadio Verde)<input id="plZona" type="text" list="dlZonas" placeholder="Plaza Manuel de Falla"></label>
+    <datalist id="dlZonas"></datalist>
+    <label for="plNombre">Nombre de la pileta<input id="plNombre" type="text" placeholder="Pileta central"></label>
+    <label for="plVol">Volumen de agua (m³)<input id="plVol" type="number" inputmode="decimal" step="0.1" min="0" placeholder="Dejar vacío si aún no se conoce"></label>
+    <div class="calcvol">
+      <div class="eyebrow">Calcular volumen desde las medidas</div>
+      <label for="cvForma">Forma<select id="cvForma"><option value="rect">Rectangular</option><option value="circ">Circular</option></select></label>
+      <div class="row" id="cvRect">
+        <label for="cvLargo">Largo (m)<input id="cvLargo" type="number" inputmode="decimal" step="0.1" min="0"></label>
+        <label for="cvAncho">Ancho (m)<input id="cvAncho" type="number" inputmode="decimal" step="0.1" min="0"></label>
+      </div>
+      <div class="row" id="cvCirc" hidden>
+        <label for="cvDiam">Diámetro (m)<input id="cvDiam" type="number" inputmode="decimal" step="0.1" min="0"></label>
+      </div>
+      <label for="cvProf">Profundidad promedio del agua (m)<input id="cvProf" type="number" inputmode="decimal" step="0.05" min="0"></label>
+      <div class="actions"><button class="btn ghost sm" type="button" id="cvBtn">Calcular y usar</button><span class="small muted" id="cvRes"></span></div>
+    </div>
+    <div class="err" id="plErr"></div>
+    <div class="actions">
+      <button class="btn" type="submit" id="plGuardar">Agregar</button>
+      <button class="btn ghost" type="button" id="plCancelar" hidden>Cancelar edición</button>
+    </div>
+  </form>
+  <div class="card"><h2>Piletas por zona</h2><div id="pilBody"></div></div>
 </section>
 
 <section id="p-personal" class="grid2" hidden>
@@ -302,7 +356,7 @@ const fbApp = initializeApp(firebaseConfig, "piletas");
 const db = getDatabase(fbApp);
 const auth = getAuth(fbApp);
 const ROOT = "estadio-verde-data";
-const PIL = ROOT + "/piletas";   // mediciones, compras, vaciados — misma ruta que usará el módulo de Estadio Verde
+const PIL = ROOT + "/piletas";   // piletas, mediciones, compras, vaciados, personal, config — misma ruta que usará el módulo de Estadio Verde
 
 // Roles: mismo criterio que Estadio Verde (programador fijo + config/emails_extra)
 const ROLES_EMAIL = { "carmenluzhdiez@gmail.com": "programador" };
@@ -317,21 +371,29 @@ function getRolByEmail(email, extra = {}) {
   }
   return null;
 }
-// Qué puede hacer cada rol
+const TODAS = ["dosis", "registro", "informe", "gasto", "vaciado", "guia", "piletas", "personal"];
 const PERM = {
   trabajador:  { tabs: ["dosis", "registro", "guia"], registrar: true },
   supervisor:  { tabs: ["dosis", "registro", "informe", "gasto", "vaciado", "guia"], registrar: true, compras: true, vaciado: true },
-  jefa:        { tabs: ["dosis", "registro", "informe", "gasto", "vaciado", "guia", "personal"], registrar: true, compras: true, vaciado: true, borrar: true, personal: true },
-  programador: { tabs: ["dosis", "registro", "informe", "gasto", "vaciado", "guia", "personal"], registrar: true, compras: true, vaciado: true, borrar: true, personal: true },
+  jefa:        { tabs: TODAS, registrar: true, compras: true, vaciado: true, borrar: true, admin: true },
+  programador: { tabs: TODAS, registrar: true, compras: true, vaciado: true, borrar: true, admin: true },
   gerencia:    { tabs: ["registro", "informe", "gasto", "guia"] },
 };
-const ROL_TXT = { trabajador: "Jardinero", supervisor: "Supervisor", jefa: "Jefa AV", programador: "Jefa AV", gerencia: "Gerencia" };
+const ROL_TXT = { trabajador: "Operador", supervisor: "Supervisor", jefa: "Jefa AV", programador: "Jefa AV", gerencia: "Gerencia" };
 
 // ─── LÓGICA DE PILETAS (portable al módulo React) ────────────────────────────
-const PILETAS = [{ id: "p15", nombre: "Pileta 15 m³", vol: 15 }, { id: "p12", nombre: "Pileta 12 m³", vol: 12 }, { id: "p5", nombre: "Pileta 5 m³", vol: 5 }];
+// Piletas iniciales: las de Plaza Manuel de Falla conservan sus ids (p15, p12, p5) para no perder registros.
+const PILETAS_INI = {
+  p15:  { zona: "Plaza Manuel de Falla",   nombre: "Pileta 15 m³",            vol: 15, orden: 1, activa: true },
+  p12:  { zona: "Plaza Manuel de Falla",   nombre: "Pileta 12 m³",            vol: 12, orden: 2, activa: true },
+  p5:   { zona: "Plaza Manuel de Falla",   nombre: "Pileta 5 m³",             vol: 5,  orden: 3, activa: true },
+  pcid: { zona: "Pérgola el Cid",          nombre: "Fuente Pérgola el Cid",   vol: 24, orden: 4, activa: true },
+  psa:  { zona: "Fuente Santiago Apóstol", nombre: "Fuente Santiago Apóstol", vol: null, orden: 5, activa: true },
+};
 const META = 0.8, CL_MIN = 0.5, CL_ALTO = 1.5, PH_MIN = 7.2, PH_MAX = 7.6;
 function dosis(vol, lect, tipo) {
-  if (!(lect >= 0) || lect >= META) return 0;
+  if (!(vol > 0) || !(lect >= 0)) return null;
+  if (lect >= META) return 0;
   const f = tipo === "5" ? 20 : 10;
   return Math.max(0, Math.round((META - lect) * vol * f / 5) * 5);
 }
@@ -345,7 +407,6 @@ function estadoCl(cl) {
 // ─── UTILIDADES ──────────────────────────────────────────────────────────────
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const pName = id => (PILETAS.find(p => p.id === id) || { nombre: id }).nombre;
 const nf = (n, d = 1) => Number(n).toLocaleString("es-CL", { minimumFractionDigits: d, maximumFractionDigits: d });
 const money = n => "$" + Math.round(n).toLocaleString("es-CL");
 const pad = n => String(n).padStart(2, "0");
@@ -360,11 +421,26 @@ function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = fal
 function setStatus(on, txt) { const c = $("#dbStatus"); c.classList.toggle("on", on); c.classList.toggle("off", !on); $("#dbStatusTxt").textContent = txt; }
 
 // ─── ESTADO ──────────────────────────────────────────────────────────────────
-const S = { med: [], compras: [], vac: [], personal: [], pines: {}, pileta: "p15", tipo: ls.get("pil_tipo") === "5" ? "5" : "10", aplicadaTocada: false, borrar: null, sesion: null, subs: [] };
+const S = {
+  med: [], compras: [], vac: [], personal: [], pers: [], pils: [],
+  zona: ls.get("pil_zona"), pileta: ls.get("pil_pileta"), tipo: ls.get("pil_tipo") === "5" ? "5" : "10",
+  aplicadaTocada: false, borrar: null, persEdit: null, persBorrar: null, pilEdit: null, pilBorrar: null, sesion: null, subs: []
+};
 const can = k => !!(S.sesion && PERM[S.sesion.rol] && PERM[S.sesion.rol][k]);
 
+// Piletas: lista ordenada, activas, zonas y búsqueda
+function setPiletas(obj) {
+  S.pils = Object.entries(obj || PILETAS_INI).map(([id, p]) => Object.assign({ id }, p)).sort((a, b) => (a.orden || 99) - (b.orden || 99) || (a.nombre || "").localeCompare(b.nombre || ""));
+}
+setPiletas(null);
+const activas = () => S.pils.filter(p => p.activa !== false);
+const zonas = () => [...new Set(activas().map(p => p.zona))];
+const pil = id => S.pils.find(p => p.id === id);
+const pName = id => (pil(id) || { nombre: id }).nombre;
+const zonaDe = m => m.zona || (pil(m.pileta) || {}).zona || "Sin zona";
+const volTxt = p => p.vol > 0 ? nf(p.vol, p.vol % 1 ? 1 : 0) + " m³" : "volumen pendiente";
+
 // ─── INGRESO ─────────────────────────────────────────────────────────────────
-// Personal de ingreso: lista propia de piletas (piletas/personal) + opcionalmente el personal del DAV
 function normalizaDAV(v, pines) {
   const arr = Array.isArray(v) ? v : Object.values(v || {});
   return arr.filter(p => p && p.nombre && !/jef/i.test(p.cargo || "") && !/desvinc|inactiv|retir|baja/i.test(p.estado || ""))
@@ -372,15 +448,16 @@ function normalizaDAV(v, pines) {
 }
 async function cargarPersonal() {
   try {
-    const [pil, cfg] = await Promise.all([get(ref(db, PIL + "/personal")), get(ref(db, PIL + "/config"))]);
-    const lista = Object.entries(pil.val() || {}).filter(([, p]) => p && p.nombre && p.activo !== false)
-      .map(([k, p]) => ({ id: "pil_" + k, nombre: p.nombre, sup: p.cargo === "supervisor", pin: String(p.pin || ""), origen: "Piletas" }));
+    const [pl, cfg] = await Promise.all([get(ref(db, PIL + "/personal")), get(ref(db, PIL + "/config"))]);
+    const lista = Object.entries(pl.val() || {}).filter(([, p]) => p && p.nombre && p.activo !== false)
+      .map(([k, p]) => ({ id: "pil_" + k, nombre: p.nombre, sup: p.cargo === "supervisor", pin: String(p.pin || ""), origen: "Piletas" }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
     let dav = [];
     if ((cfg.val() || {}).incluirDAV) {
       const [per, pines] = await Promise.all([get(ref(db, ROOT + "/personal")), get(ref(db, ROOT + "/pines_supervisor"))]);
       dav = normalizaDAV(per.val(), pines.val() || {});
     }
-    S.personal = [...lista.sort((a, b) => a.nombre.localeCompare(b.nombre)), ...dav];
+    S.personal = [...lista, ...dav];
     if (!S.personal.length) { $("#lgPersona").innerHTML = '<option value="">Aún no hay personal cargado</option>'; $("#lgErr1").textContent = "La jefatura debe agregar al personal en la pestaña Personal."; return; }
     const opts = arr => arr.map(p => `<option value="${esc(p.id)}">${esc(p.nombre)}${p.sup ? " (supervisor)" : ""}</option>`).join("");
     $("#lgPersona").innerHTML = '<option value="">Selecciona tu nombre</option>' +
@@ -408,10 +485,18 @@ $("#btnEmail").addEventListener("click", async () => {
   const email = $("#lgEmail").value.trim().toLowerCase(), pass = $("#lgPass").value;
   $("#lgErr2").textContent = "";
   if (!email || !pass) { $("#lgErr2").textContent = "Ingresa correo y contraseña."; return; }
-  try {
-    await signInWithEmailAndPassword(auth, email, pass);
-  } catch (e) { $("#lgErr2").textContent = "Correo o contraseña incorrectos."; }
+  try { await signInWithEmailAndPassword(auth, email, pass); }
+  catch (e) { $("#lgErr2").textContent = "Correo o contraseña incorrectos."; }
 });
+// Ver / ocultar contraseña y PIN
+function ocultarClaves() { document.querySelectorAll(".pwtoggle").forEach(b => { $("#" + b.dataset.for).type = "password"; b.textContent = "Ver"; b.setAttribute("aria-label", b.dataset.for === "lgPin" ? "Ver PIN" : "Ver contraseña"); }); }
+document.querySelectorAll(".pwtoggle").forEach(b => b.addEventListener("click", () => {
+  const inp = $("#" + b.dataset.for), ver = inp.type === "password";
+  inp.type = ver ? "text" : "password";
+  b.textContent = ver ? "Ocultar" : "Ver";
+  b.setAttribute("aria-label", (ver ? "Ocultar " : "Ver ") + (b.dataset.for === "lgPin" ? "PIN" : "contraseña"));
+  inp.focus();
+}));
 $("#btnSalir").addEventListener("click", async () => {
   ls.set("pil_sesion", null);
   S.subs.forEach(u => u()); S.subs = []; S.sesion = null;
@@ -435,11 +520,10 @@ function iniciarSesion(ses) {
 function mostrarLogin() {
   $("#loginView").hidden = false; $("#appView").hidden = true;
   $("#userTxt").hidden = true; $("#btnSalir").hidden = true;
-  $("#lgPin").value = ""; $("#lgPass").value = "";
+  $("#lgPin").value = ""; $("#lgPass").value = ""; ocultarClaves();
   if (!auth.currentUser) signInAnonymously(auth).catch(() => setStatus(false, "Sin conexión"));
   else cargarPersonal();
 }
-
 onAuthStateChanged(auth, async user => {
   if (!user) { setStatus(false, "Sin sesión"); if (!S.sesion) signInAnonymously(auth).catch(() => setStatus(false, "Sin conexión")); return; }
   setStatus(true, "Conectado");
@@ -459,13 +543,19 @@ onAuthStateChanged(auth, async user => {
 
 // ─── SUSCRIPCIONES ───────────────────────────────────────────────────────────
 const aLista = v => Object.entries(v || {}).map(([id, x]) => Object.assign({ id }, x)).sort((a, b) => (b.ts || 0) - (a.ts || 0));
+function renderTodo() { renderSelectores(); calc(); renderRegistro(); renderInforme(); renderGasto(); renderVac(); renderGuia(); renderPil(); }
 function suscribir() {
   S.subs.forEach(u => u()); S.subs = [];
   const err = () => setStatus(false, "Sin permiso de lectura");
-  S.subs.push(onValue(ref(db, PIL + "/mediciones"), s => { S.med = aLista(s.val()); renderRegistro(); renderInforme(); renderGasto(); }, err));
+  S.subs.push(onValue(ref(db, PIL + "/piletas"), s => {
+    const v = s.val();
+    if (!v && can("admin")) { set(ref(db, PIL + "/piletas"), PILETAS_INI).catch(() => { }); }
+    setPiletas(v); renderTodo();
+  }, err));
+  S.subs.push(onValue(ref(db, PIL + "/mediciones"), s => { S.med = aLista(s.val()); renderRegistro(); renderInforme(); renderGasto(); renderPil(); }, err));
   S.subs.push(onValue(ref(db, PIL + "/compras"), s => { S.compras = aLista(s.val()); renderGasto(); renderInforme(); }, err));
   S.subs.push(onValue(ref(db, PIL + "/vaciados"), s => { S.vac = aLista(s.val()); renderVac(); }, err));
-  if (can("personal")) {
+  if (can("admin")) {
     S.subs.push(onValue(ref(db, PIL + "/personal"), s => { S.pers = Object.entries(s.val() || {}).map(([id, x]) => Object.assign({ id }, x)).sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "")); renderPers(); }, err));
     S.subs.push(onValue(ref(db, PIL + "/config"), s => { $("#psDAV").checked = !!(s.val() || {}).incluirDAV; }, err));
   }
@@ -475,15 +565,39 @@ function suscribir() {
 const tabs = [...document.querySelectorAll(".tab")];
 function showTab(name) {
   tabs.forEach(b => b.setAttribute("aria-selected", b.dataset.tab === name ? "true" : "false"));
-  ["dosis", "registro", "informe", "gasto", "vaciado", "guia", "personal"].forEach(n => { $("#p-" + n).hidden = n !== name; });
+  TODAS.forEach(n => { $("#p-" + n).hidden = n !== name; });
   ls.set("pil_tab", name);
 }
 tabs.forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
 
+// ─── SELECTORES DE ZONA Y PILETA ─────────────────────────────────────────────
+function renderSelectores() {
+  const zs = zonas();
+  if (!zs.includes(S.zona)) S.zona = zs[0] || null;
+  const enZona = activas().filter(p => p.zona === S.zona);
+  if (!enZona.some(p => p.id === S.pileta)) S.pileta = enZona[0] ? enZona[0].id : null;
+  $("#segZona").innerHTML = zs.map(z => `<button type="button" data-z="${esc(z)}" aria-pressed="${z === S.zona}">${esc(z)}<small>${activas().filter(p => p.zona === z).length} pileta(s)</small></button>`).join("");
+  $("#segPileta").innerHTML = enZona.map(p => `<button type="button" data-p="${esc(p.id)}" aria-pressed="${p.id === S.pileta}">${esc(p.nombre)}<small>${volTxt(p)}</small></button>`).join("");
+  // filtros
+  const zOpts = '<option value="">Todas</option>' + zs.map(z => `<option value="${esc(z)}">${esc(z)}</option>`).join("");
+  ["#filZona", "#infZona"].forEach(s => { const v = $(s).value; $(s).innerHTML = zOpts; if (zs.includes(v)) $(s).value = v; });
+  syncFilPileta();
+  // vaciado: piletas agrupadas por zona
+  const vv = $("#vPileta").value;
+  $("#vPileta").innerHTML = zs.map(z => `<optgroup label="${esc(z)}">${activas().filter(p => p.zona === z).map(p => `<option value="${esc(p.id)}">${esc(p.nombre)}</option>`).join("")}</optgroup>`).join("");
+  if (pil(vv)) $("#vPileta").value = vv;
+  $("#dlZonas").innerHTML = [...new Set(S.pils.map(p => p.zona))].map(z => `<option value="${esc(z)}"></option>`).join("");
+}
+function syncFilPileta() {
+  const z = $("#filZona").value, v = $("#filPileta").value;
+  const lista = S.pils.filter(p => !z || p.zona === z);
+  $("#filPileta").innerHTML = '<option value="">Todas</option>' + lista.map(p => `<option value="${esc(p.id)}">${esc(p.nombre)}</option>`).join("");
+  if (lista.some(p => p.id === v)) $("#filPileta").value = v;
+}
+$("#segZona").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; S.zona = b.dataset.z; S.pileta = null; ls.set("pil_zona", S.zona); renderSelectores(); ls.set("pil_pileta", S.pileta); S.aplicadaTocada = false; calc(); });
+$("#segPileta").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; S.pileta = b.dataset.p; ls.set("pil_pileta", S.pileta); [...$("#segPileta").children].forEach(x => x.setAttribute("aria-pressed", x === b)); S.aplicadaTocada = false; calc(); });
+
 // ─── DOSIFICAR ───────────────────────────────────────────────────────────────
-const segP = $("#segPileta");
-segP.innerHTML = PILETAS.map(p => `<button type="button" data-p="${p.id}" aria-pressed="${p.id === S.pileta}">${p.vol} m³<small>${esc(p.nombre)}</small></button>`).join("");
-segP.addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; S.pileta = b.dataset.p; [...segP.children].forEach(x => x.setAttribute("aria-pressed", x === b)); S.aplicadaTocada = false; calc(); });
 const segT = $("#segTipo");
 [...segT.children].forEach(x => x.setAttribute("aria-pressed", x.dataset.tipo === S.tipo));
 segT.addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; S.tipo = b.dataset.tipo; [...segT.children].forEach(x => x.setAttribute("aria-pressed", x === b)); ls.set("pil_tipo", S.tipo); S.aplicadaTocada = false; calc(); });
@@ -491,28 +605,37 @@ $("#inFecha").value = today;
 ["#inCl", "#inPh"].forEach(s => $(s).addEventListener("input", () => { S.aplicadaTocada = false; calc(); }));
 $("#inAplicada").addEventListener("input", () => { S.aplicadaTocada = true; });
 function calc() {
-  const p = PILETAS.find(x => x.id === S.pileta);
+  const p = pil(S.pileta);
   const cl = parseFloat($("#inCl").value), ph = parseFloat($("#inPh").value);
-  if (!(cl >= 0)) { $("#resDosis").textContent = "—"; $("#resPill").innerHTML = ""; $("#resCalc").textContent = "Ingresa la lectura de cloro libre."; $("#resAlerts").innerHTML = ""; if (!S.aplicadaTocada) $("#inAplicada").value = ""; return; }
+  const vacio = msg => { $("#resDosis").textContent = "—"; $("#resPill").innerHTML = ""; $("#resCalc").textContent = msg; $("#resAlerts").innerHTML = ""; if (!S.aplicadaTocada) $("#inAplicada").value = ""; };
+  if (!p) return vacio("Elige la zona y la pileta.");
+  if (!(cl >= 0)) return vacio("Ingresa la lectura de cloro libre.");
   const d = dosis(p.vol, cl, S.tipo), f = S.tipo === "5" ? 20 : 10, st = estadoCl(cl), al = [];
-  $("#resDosis").textContent = d + " mL";
   $("#resPill").innerHTML = `<span class="pill ${st.cls}">${st.txt}</span>`;
-  $("#resCalc").textContent = cl < META ? `(0,8 − ${nf(cl)}) × ${p.vol} m³ × ${f} = ${nf((META - cl) * p.vol * f, 0)} mL · cloro al ${S.tipo}%` : `${p.nombre} · cloro al ${S.tipo}%`;
+  if (d == null) {
+    $("#resDosis").textContent = "—";
+    $("#resCalc").textContent = `${p.nombre} · volumen pendiente`;
+    al.push(["warn", "Esta pileta aún no tiene volumen registrado, así que no se puede calcular la dosis. La jefatura debe ingresarlo en la pestaña Piletas. Puedes guardar la lectura igual."]);
+  } else {
+    $("#resDosis").textContent = d + " mL";
+    $("#resCalc").textContent = cl < META ? `(0,8 − ${nf(cl)}) × ${nf(p.vol, p.vol % 1 ? 1 : 0)} m³ × ${f} = ${nf((META - cl) * p.vol * f, 0)} mL · cloro al ${S.tipo}%` : `${p.nombre} · cloro al ${S.tipo}%`;
+  }
   if (cl > CL_ALTO) al.push(["bad", "No agregar cloro y avisar al supervisor. El exceso daña las plantas de alrededor."]);
   else if (cl >= META) al.push(["ok", "No agregar. Volver a medir mañana."]);
   if (ph > PH_MAX) al.push(["warn", "pH alto: el cloro rinde menos. Corregir con reductor de pH, separado varias horas del cloro."]);
   else if (ph < PH_MIN && ph > 0) al.push(["warn", "pH bajo: corregir con incrementador de pH antes de seguir clorando."]);
   if (d > 0) al.push(["warn", "Diluir en balde y aplicar lejos de los bordes con plantas."]);
   $("#resAlerts").innerHTML = al.map(a => `<li class="${a[0]}">${esc(a[1])}</li>`).join("");
-  if (!S.aplicadaTocada) $("#inAplicada").value = d;
+  if (!S.aplicadaTocada) $("#inAplicada").value = d == null ? "" : d;
 }
 $("#fDosis").addEventListener("submit", async e => {
   e.preventDefault();
   if (!can("registrar")) return;
+  const p = pil(S.pileta);
+  if (!p) { toast("Elige la pileta"); return; }
   const cl = parseFloat($("#inCl").value), ph = parseFloat($("#inPh").value), ap = parseFloat($("#inAplicada").value);
   if (!(cl >= 0)) { toast("Falta la lectura de cloro"); return; }
-  const p = PILETAS.find(x => x.id === S.pileta);
-  const doc = { fecha: $("#inFecha").value || today, ts: Date.now(), pileta: p.id, tipo: S.tipo, cl, ph: ph > 0 ? ph : null, dosisRec: dosis(p.vol, cl, S.tipo), dosis: ap >= 0 ? ap : 0, resp: S.sesion.nombre, respId: S.sesion.id, nota: $("#inNota").value.trim() };
+  const doc = { fecha: $("#inFecha").value || today, ts: Date.now(), zona: p.zona, pileta: p.id, tipo: S.tipo, cl, ph: ph > 0 ? ph : null, dosisRec: dosis(p.vol, cl, S.tipo), dosis: ap >= 0 ? ap : 0, resp: S.sesion.nombre, respId: S.sesion.id, nota: $("#inNota").value.trim() };
   $("#btnGuardar").disabled = true;
   try { await push(ref(db, PIL + "/mediciones"), doc); toast("Registro guardado"); $("#inNota").value = ""; $("#inCl").value = ""; $("#inPh").value = ""; S.aplicadaTocada = false; calc(); }
   catch (err) { toast("No se pudo guardar. Revisa la conexión."); }
@@ -520,16 +643,17 @@ $("#fDosis").addEventListener("submit", async e => {
 });
 
 // ─── REGISTRO ────────────────────────────────────────────────────────────────
-$("#filPileta").innerHTML += PILETAS.map(p => `<option value="${p.id}">${esc(p.nombre)}</option>`).join("");
+$("#filZona").addEventListener("change", () => { syncFilPileta(); renderRegistro(); });
 $("#filPileta").addEventListener("change", renderRegistro);
 function renderRegistro() {
-  const f = $("#filPileta").value, rows = S.med.filter(m => !f || m.pileta === f);
-  if (!rows.length) { $("#regBody").innerHTML = `<div class="empty">Aún no hay mediciones. Se registran en la pestaña Dosificar.</div>`; return; }
+  const z = $("#filZona").value, f = $("#filPileta").value;
+  const rows = S.med.filter(m => (!z || zonaDe(m) === z) && (!f || m.pileta === f));
+  if (!rows.length) { $("#regBody").innerHTML = `<div class="empty">Aún no hay mediciones${z || f ? " con este filtro" : ""}. Se registran en la pestaña Dosificar.</div>`; return; }
   const borrar = can("borrar");
-  $("#regBody").innerHTML = `<div class="tablebox"><table><thead><tr><th>Fecha</th><th>Pileta</th><th class="num">Cloro ppm</th><th class="num">pH</th><th>Producto</th><th class="num">Dosis mL</th><th>Estado</th><th>Responsable</th><th>Observación</th>${borrar ? "<th></th>" : ""}</tr></thead><tbody>${rows.map(m => {
+  $("#regBody").innerHTML = `<div class="tablebox"><table><thead><tr><th>Fecha</th><th>Zona</th><th>Pileta</th><th class="num">Cloro ppm</th><th class="num">pH</th><th>Producto</th><th class="num">Dosis mL</th><th>Estado</th><th>Responsable</th><th>Observación</th>${borrar ? "<th></th>" : ""}</tr></thead><tbody>${rows.map(m => {
     const st = estadoCl(m.cl), phBad = m.ph != null && (m.ph < PH_MIN || m.ph > PH_MAX);
     const del = !borrar ? "" : `<td>${S.borrar === m.id ? `<button class="btn danger" data-del="${esc(m.id)}">Confirmar</button> <button class="btn ghost sm" data-cancel="1">No</button>` : `<button class="btn danger" data-ask="${esc(m.id)}">Borrar</button>`}</td>`;
-    return `<tr><td>${fmtFecha(m.fecha)}</td><td>${esc(pName(m.pileta))}</td><td class="num">${nf(m.cl)}</td><td class="num">${m.ph != null ? nf(m.ph) : "—"}${phBad ? ' <span class="pill warn">pH</span>' : ""}</td><td>Cloro ${esc(m.tipo)}%</td><td class="num">${Math.round(m.dosis || 0)}</td><td><span class="pill ${st.cls}">${st.txt}</span></td><td>${esc(m.resp || "—")}</td><td style="white-space:normal;min-width:160px">${esc(m.nota || "")}</td>${del}</tr>`;
+    return `<tr><td>${fmtFecha(m.fecha)}</td><td>${esc(zonaDe(m))}</td><td>${esc(pName(m.pileta))}</td><td class="num">${nf(m.cl)}</td><td class="num">${m.ph != null ? nf(m.ph) : "—"}${phBad ? ' <span class="pill warn">pH</span>' : ""}</td><td>Cloro ${esc(m.tipo)}%</td><td class="num">${Math.round(m.dosis || 0)}</td><td><span class="pill ${st.cls}">${st.txt}</span></td><td>${esc(m.resp || "—")}</td><td style="white-space:normal;min-width:160px">${esc(m.nota || "")}</td>${del}</tr>`;
   }).join("")}</tbody></table></div><div class="small muted">${rows.length} registros</div>`;
 }
 $("#regBody").addEventListener("click", async e => {
@@ -546,40 +670,44 @@ function precioLitro(tipo) {
   return l > 0 ? m / l : null;
 }
 const usadoL = (list, tipo) => list.filter(m => m.tipo === tipo).reduce((s, m) => s + (m.dosis || 0), 0) / 1000;
+const costoDe = list => { const p10 = precioLitro("10"), p5 = precioLitro("5"); return list.reduce((s, m) => s + (m.dosis || 0) * ((m.tipo === "5" ? p5 : p10) || 0) / 1000, 0); };
 
 // ─── INFORME SEMANAL ─────────────────────────────────────────────────────────
 $("#infFecha").value = ymd(monday(new Date()));
 $("#infFecha").addEventListener("change", renderInforme);
+$("#infZona").addEventListener("change", renderInforme);
 let resumenTxt = "";
 function renderInforme() {
   const lun = monday(parseYmd($("#infFecha").value || today)), a = ymd(lun), b = ymd(addDays(lun, 6));
-  const sem = S.med.filter(m => m.fecha >= a && m.fecha <= b);
+  const zSel = $("#infZona").value;
+  const sem = S.med.filter(m => m.fecha >= a && m.fecha <= b && (!zSel || zonaDe(m) === zSel));
   const p10 = precioLitro("10"), p5 = precioLitro("5"), L10 = usadoL(sem, "10"), L5 = usadoL(sem, "5");
   const costoOk = (L10 === 0 || p10 != null) && (L5 === 0 || p5 != null);
-  const costo = (p10 != null ? L10 * p10 : 0) + (p5 != null ? L5 * p5 : 0);
   const fuera = m => m.cl < CL_MIN || m.cl > CL_ALTO || (m.ph != null && (m.ph < PH_MIN || m.ph > PH_MAX));
-  const nFuera = sem.filter(fuera).length, rango = `${fmtFecha(a)} al ${fmtFecha(b)}`;
-  if (!sem.length) { $("#infBody").innerHTML = `<div class="small muted">${rango}</div><div class="empty">No hay mediciones registradas esta semana.</div>`; resumenTxt = ""; return; }
+  const nFuera = sem.filter(fuera).length, rango = `${fmtFecha(a)} al ${fmtFecha(b)}` + (zSel ? ` · ${zSel}` : "");
+  if (!sem.length) { $("#infBody").innerHTML = `<div class="small muted">${esc(rango)}</div><div class="empty">No hay mediciones registradas esta semana.</div>`; resumenTxt = ""; return; }
   const avg = (arr, k) => { const xs = arr.map(m => m[k]).filter(x => x != null); return xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : null; };
-  const filas = PILETAS.map(p => { const r = sem.filter(m => m.pileta === p.id); return { p, n: r.length, cl: avg(r, "cl"), ph: avg(r, "ph"), fuera: r.filter(fuera).length, ml: r.reduce((s, m) => s + (m.dosis || 0), 0), c: r.reduce((s, m) => s + (m.dosis || 0) * ((m.tipo === "5" ? p5 : p10) || 0) / 1000, 0) }; });
+  const ids = [...new Set([...activas().filter(p => !zSel || p.zona === zSel).map(p => p.id), ...sem.map(m => m.pileta)])];
+  const filas = ids.map(id => { const r = sem.filter(m => m.pileta === id); return { id, zona: (pil(id) || {}).zona || (r[0] && r[0].zona) || "Sin zona", n: r.length, cl: avg(r, "cl"), ph: avg(r, "ph"), fuera: r.filter(fuera).length, ml: r.reduce((s, m) => s + (m.dosis || 0), 0), c: costoDe(r) }; });
+  const zs = [...new Set(filas.map(f => f.zona))];
   const dias = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"].map((n, i) => { const f = ymd(addDays(lun, i)); return { n, ml: sem.filter(m => m.fecha === f).reduce((s, m) => s + (m.dosis || 0), 0) }; });
   const max = Math.max(...dias.map(d => d.ml), 1), W = 700, H = 210, top = 26, bot = 30, bw = 60, gap = (W - 40 - 7 * bw) / 6;
   const bars = dias.map((d, i) => { const h = (d.ml / max) * (H - top - bot), x = 20 + i * (bw + gap), y = H - bot - h; return `<rect class="bar" x="${x}" y="${y}" width="${bw}" height="${Math.max(h, 0)}" rx="3"></rect><text class="val" x="${x + bw / 2}" y="${y - 7}" text-anchor="middle">${d.ml ? Math.round(d.ml) : ""}</text><text x="${x + bw / 2}" y="${H - 10}" text-anchor="middle">${d.n}</text>`; }).join("");
-  $("#infBody").innerHTML = `<div class="small muted">${rango}</div>
+  const filaHtml = f => `<tr><td>${esc(pName(f.id))}</td><td class="num">${f.n}</td><td class="num">${f.cl != null ? nf(f.cl, 2) : "—"}</td><td class="num">${f.ph != null ? nf(f.ph, 2) : "—"}</td><td class="num">${f.fuera}</td><td class="num">${Math.round(f.ml)} mL</td><td class="num">${costoOk ? money(f.c) : "—"}</td></tr>`;
+  const cuerpo = zs.map(z => { const fz = filas.filter(f => f.zona === z); const tot = fz.reduce((s, f) => s + f.ml, 0), ct = fz.reduce((s, f) => s + f.c, 0); return `<tr class="zona"><td>${esc(z)}</td><td class="num">${fz.reduce((s, f) => s + f.n, 0)}</td><td></td><td></td><td class="num">${fz.reduce((s, f) => s + f.fuera, 0)}</td><td class="num">${Math.round(tot)} mL</td><td class="num">${costoOk ? money(ct) : "—"}</td></tr>` + fz.map(filaHtml).join(""); }).join("");
+  $("#infBody").innerHTML = `<div class="small muted">${esc(rango)}</div>
   <div class="kpis">
     <div class="kpi"><b>${sem.length}</b><span>mediciones</span></div>
     <div class="kpi"><b>${nFuera}</b><span>lecturas fuera de rango</span></div>
     <div class="kpi"><b>${nf(L10, 2)} L</b><span>cloro 10% usado</span></div>
     <div class="kpi"><b>${nf(L5, 2)} L</b><span>cloro 5% usado</span></div>
-    <div class="kpi"><b>${costoOk ? money(costo) : "—"}</b><span>${costoOk ? "gasto estimado" : "falta precio: registra una compra"}</span></div>
+    <div class="kpi"><b>${costoOk ? money(costoDe(sem)) : "—"}</b><span>${costoOk ? "gasto estimado" : "falta precio: registra una compra"}</span></div>
   </div>
-  <div class="tablebox"><table><thead><tr><th>Pileta</th><th class="num">Mediciones</th><th class="num">Cloro prom.</th><th class="num">pH prom.</th><th class="num">Fuera de rango</th><th class="num">Cloro aplicado</th><th class="num">Gasto</th></tr></thead><tbody>
-  ${filas.map(f => `<tr><td>${esc(f.p.nombre)}</td><td class="num">${f.n}</td><td class="num">${f.cl != null ? nf(f.cl, 2) : "—"}</td><td class="num">${f.ph != null ? nf(f.ph, 2) : "—"}</td><td class="num">${f.fuera}</td><td class="num">${Math.round(f.ml)} mL</td><td class="num">${costoOk ? money(f.c) : "—"}</td></tr>`).join("")}
-  </tbody></table></div>
-  <div><h3 style="margin:0 0 6px">Cloro aplicado por día (mL, todas las piletas)</h3>
+  <div class="tablebox"><table><thead><tr><th>Zona / pileta</th><th class="num">Mediciones</th><th class="num">Cloro prom.</th><th class="num">pH prom.</th><th class="num">Fuera de rango</th><th class="num">Cloro aplicado</th><th class="num">Gasto</th></tr></thead><tbody>${cuerpo}</tbody></table></div>
+  <div><h3 style="margin:0 0 6px">Cloro aplicado por día (mL${zSel ? ", " + esc(zSel) : ", todas las zonas"})</h3>
   <div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:420px;display:block" role="img" aria-label="Cloro aplicado por día"><line class="base" x1="10" y1="${H - bot}" x2="${W - 10}" y2="${H - bot}"></line>${bars}</svg></div></div>`;
-  resumenTxt = `Informe semanal piletas — ${rango}\nMediciones: ${sem.length} · Fuera de rango: ${nFuera}\nCloro usado: ${nf(L10, 2)} L al 10% · ${nf(L5, 2)} L al 5%` + (costoOk ? ` · Gasto estimado: ${money(costo)}` : "") + "\n\n" +
-    filas.map(f => `${f.p.nombre}: ${f.n} mediciones, cloro prom. ${f.cl != null ? nf(f.cl, 2) : "—"} ppm, pH prom. ${f.ph != null ? nf(f.ph, 2) : "—"}, ${f.fuera} fuera de rango, ${Math.round(f.ml)} mL aplicados`).join("\n");
+  resumenTxt = `Informe semanal piletas — ${rango}\nMediciones: ${sem.length} · Fuera de rango: ${nFuera}\nCloro usado: ${nf(L10, 2)} L al 10% · ${nf(L5, 2)} L al 5%` + (costoOk ? ` · Gasto estimado: ${money(costoDe(sem))}` : "") + "\n" +
+    zs.map(z => `\n${z}\n` + filas.filter(f => f.zona === z).map(f => `- ${pName(f.id)}: ${f.n} mediciones, cloro prom. ${f.cl != null ? nf(f.cl, 2) : "—"} ppm, pH prom. ${f.ph != null ? nf(f.ph, 2) : "—"}, ${f.fuera} fuera de rango, ${Math.round(f.ml)} mL aplicados`).join("\n")).join("\n");
 }
 $("#btnCopiar").addEventListener("click", () => {
   if (!resumenTxt) { toast("No hay datos esta semana"); return; }
@@ -594,10 +722,11 @@ function renderGasto() {
   const hoy = new Date(), hace28 = ymd(addDays(hoy, -28));
   const mesIni = ymd(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
   const mesAntIni = ymd(new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1)), mesAntFin = ymd(new Date(hoy.getFullYear(), hoy.getMonth(), 0));
+  const delMes = S.med.filter(m => m.fecha >= mesIni), delMesAnt = S.med.filter(m => m.fecha >= mesAntIni && m.fecha <= mesAntFin);
   const card = tipo => {
     const comprado = S.compras.filter(c => c.tipo === tipo).reduce((s, c) => s + (c.litros || 0), 0);
     const stock = comprado - usadoL(S.med, tipo), sem = usadoL(S.med.filter(m => m.fecha >= hace28), tipo) / 4, pl = precioLitro(tipo);
-    const mes = usadoL(S.med.filter(m => m.fecha >= mesIni), tipo), mesA = usadoL(S.med.filter(m => m.fecha >= mesAntIni && m.fecha <= mesAntFin), tipo);
+    const mes = usadoL(delMes, tipo), mesA = usadoL(delMesAnt, tipo);
     const semanas = sem > 0 ? stock / sem : null, alerta = semanas != null && semanas < 2 && comprado > 0;
     return `<div style="display:flex;flex-direction:column;gap:10px"><div class="actions" style="justify-content:space-between"><h3>Cloro ${tipo}%</h3>${comprado > 0 ? `<span class="pill ${stock <= 0 ? "bad" : alerta ? "warn" : "ok"}">${stock <= 0 ? "Sin stock" : alerta ? "Stock bajo" : "Stock OK"}</span>` : '<span class="pill info">Sin compras</span>'}</div>
     <div class="kpis">
@@ -609,7 +738,10 @@ function renderGasto() {
       <div class="kpi"><b>${pl != null ? money(mesA * pl) : nf(mesA, 2) + " L"}</b><span>gasto mes anterior</span></div>
     </div></div>`;
   };
-  $("#gastoBody").innerHTML = card("10") + '<hr class="sep">' + card("5") + `<div class="small muted">El stock se calcula como litros comprados menos las dosis registradas. Solo es confiable si todas las aplicaciones se registran.</div>`;
+  $("#gastoBody").innerHTML = card("10") + '<hr class="sep">' + card("5") + `<div class="small muted">El stock se calcula como litros comprados menos las dosis registradas en todas las zonas. Solo es confiable si todas las aplicaciones se registran.</div>`;
+  const hayPrecio = precioLitro("10") != null || precioLitro("5") != null;
+  const zs = [...new Set([...zonas(), ...delMes.map(zonaDe), ...delMesAnt.map(zonaDe)])];
+  $("#zonaGastoBody").innerHTML = `<div class="tablebox"><table><thead><tr><th>Zona</th><th class="num">Mes actual</th><th class="num">Mes anterior</th>${hayPrecio ? '<th class="num">Gasto mes actual</th>' : ""}</tr></thead><tbody>${zs.map(z => { const a = delMes.filter(m => zonaDe(m) === z), b = delMesAnt.filter(m => zonaDe(m) === z); const ml = l => l.reduce((s, m) => s + (m.dosis || 0), 0); return `<tr><td>${esc(z)}</td><td class="num">${nf(ml(a) / 1000, 2)} L</td><td class="num">${nf(ml(b) / 1000, 2)} L</td>${hayPrecio ? `<td class="num">${money(costoDe(a))}</td>` : ""}</tr>`; }).join("")}</tbody></table></div>`;
   $("#comprasBody").innerHTML = S.compras.length ? `<div class="tablebox"><table><thead><tr><th>Fecha</th><th>Tipo</th><th class="num">Litros</th><th class="num">Costo</th><th>Nota</th><th>Registró</th></tr></thead><tbody>${S.compras.map(c => `<tr><td>${fmtFecha(c.fecha)}</td><td>Cloro ${esc(c.tipo)}%</td><td class="num">${nf(c.litros, 1)}</td><td class="num">${c.costo ? money(c.costo) : "—"}</td><td>${esc(c.prov || "")}</td><td>${esc(c.resp || "—")}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">Registra la primera compra para calcular stock y costo por litro.</div>`;
 }
 $("#fCompra").addEventListener("submit", async e => {
@@ -623,7 +755,6 @@ $("#fCompra").addEventListener("submit", async e => {
 
 // ─── VACIADO ─────────────────────────────────────────────────────────────────
 const PASOS = ["Cloro suspendido al menos 3 días antes del vaciado.", "Cloro libre medido con kit DPD y en 0 ppm (o neutralizado con tiosulfato de sodio).", "Bomba sumergible y manguera dirigidas al desagüe o sumidero, nunca al jardín.", "Bordes con plantas protegidos con plástico o geotextil.", "Lavado con hidrolavadora a baja presión, sin cloro ni detergentes.", "Al rellenar: dosis inicial según tabla (lectura 0,0), con la pileta llena."];
-$("#vPileta").innerHTML = PILETAS.map(p => `<option value="${p.id}">${esc(p.nombre)}</option>`).join("");
 $("#vChecks").innerHTML = PASOS.map((t, i) => `<label class="check" for="vc${i}"><input type="checkbox" id="vc${i}"><span class="n">${i + 1}</span><span>${esc(t)}</span></label>`).join("");
 function checkVac() {
   const all = PASOS.every((_, i) => $("#vc" + i).checked), al = [], susp = $("#vSusp").value, cl = parseFloat($("#vCl").value);
@@ -637,22 +768,85 @@ $("#fVaciado").addEventListener("change", checkVac);
 $("#fVaciado").addEventListener("submit", async e => {
   e.preventDefault();
   if (!can("vaciado")) return;
-  try { await push(ref(db, PIL + "/vaciados"), { fecha: today, ts: Date.now(), pileta: $("#vPileta").value, suspension: $("#vSusp").value || null, cl: parseFloat($("#vCl").value) || 0, resp: S.sesion.nombre }); toast("Vaciado registrado"); PASOS.forEach((_, i) => { $("#vc" + i).checked = false; }); $("#vCl").value = ""; checkVac(); }
+  const p = pil($("#vPileta").value);
+  if (!p) { toast("Elige la pileta"); return; }
+  try { await push(ref(db, PIL + "/vaciados"), { fecha: today, ts: Date.now(), zona: p.zona, pileta: p.id, suspension: $("#vSusp").value || null, cl: parseFloat($("#vCl").value) || 0, resp: S.sesion.nombre }); toast("Vaciado registrado"); PASOS.forEach((_, i) => { $("#vc" + i).checked = false; }); $("#vCl").value = ""; checkVac(); }
   catch (err) { toast("No se pudo registrar"); }
 });
 function renderVac() {
-  $("#vacBody").innerHTML = S.vac.length ? `<div class="tablebox"><table><thead><tr><th>Fecha</th><th>Pileta</th><th>Cloro suspendido</th><th class="num">Cloro verificado</th><th>Responsable</th></tr></thead><tbody>${S.vac.map(v => `<tr><td>${fmtFecha(v.fecha)}</td><td>${esc(pName(v.pileta))}</td><td>${fmtFecha(v.suspension)}</td><td class="num">${nf(v.cl || 0)} ppm</td><td>${esc(v.resp || "—")}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">Aún no hay vaciados registrados.</div>`;
+  $("#vacBody").innerHTML = S.vac.length ? `<div class="tablebox"><table><thead><tr><th>Fecha</th><th>Zona</th><th>Pileta</th><th>Cloro suspendido</th><th class="num">Cloro verificado</th><th>Responsable</th></tr></thead><tbody>${S.vac.map(v => `<tr><td>${fmtFecha(v.fecha)}</td><td>${esc(zonaDe(v))}</td><td>${esc(pName(v.pileta))}</td><td>${fmtFecha(v.suspension)}</td><td class="num">${nf(v.cl || 0)} ppm</td><td>${esc(v.resp || "—")}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">Aún no hay vaciados registrados.</div>`;
 }
 
+// ─── GUÍA: TABLA DE DOSIS ────────────────────────────────────────────────────
+$("#guiaTipo").value = S.tipo;
+$("#guiaTipo").addEventListener("change", renderGuia);
+function renderGuia() {
+  const tipo = $("#guiaTipo").value, lects = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7];
+  const ps = activas();
+  const pend = ps.filter(p => !(p.vol > 0));
+  const conVol = ps.filter(p => p.vol > 0);
+  if (!conVol.length) { $("#tblDosis").innerHTML = ""; return; }
+  const head = `<thead><tr><th>Lectura ppm</th>${conVol.map(p => `<th class="num" title="${esc(p.zona)}">${esc(p.nombre)}<br><span style="font-weight:400;text-transform:none">${volTxt(p)}</span></th>`).join("")}</tr></thead>`;
+  const body = lects.map(l => `<tr><td>${nf(l)}</td>${conVol.map(p => `<td class="num">${dosis(p.vol, l, tipo)}</td>`).join("")}</tr>`).join("") +
+    `<tr><td>0,8–1,5</td><td colspan="${conVol.length}"><b>No agregar</b></td></tr><tr><td>&gt; 1,5</td><td colspan="${conVol.length}"><b>No agregar · avisar al supervisor</b></td></tr>` +
+    (pend.length ? `<tr><td colspan="${conVol.length + 1}" class="small muted" style="white-space:normal">Sin volumen registrado: ${pend.map(p => esc(p.nombre)).join(", ")}.</td></tr>` : "");
+  $("#tblDosis").innerHTML = head + "<tbody>" + body + "</tbody>";
+}
+
+// ─── PILETAS (solo jefatura) ─────────────────────────────────────────────────
+$("#cvForma").addEventListener("change", () => { const c = $("#cvForma").value === "circ"; $("#cvRect").hidden = c; $("#cvCirc").hidden = !c; $("#cvRes").textContent = ""; });
+$("#cvBtn").addEventListener("click", () => {
+  const prof = parseFloat($("#cvProf").value); let v = null;
+  if ($("#cvForma").value === "circ") { const d = parseFloat($("#cvDiam").value); if (d > 0 && prof > 0) v = Math.PI * (d / 2) ** 2 * prof; }
+  else { const l = parseFloat($("#cvLargo").value), a = parseFloat($("#cvAncho").value); if (l > 0 && a > 0 && prof > 0) v = l * a * prof; }
+  if (v == null) { $("#cvRes").textContent = "Completa las medidas."; return; }
+  v = Math.round(v * 10) / 10;
+  $("#plVol").value = v; $("#cvRes").textContent = `${nf(v)} m³ — revisa y guarda.`;
+});
+function limpiarPil() { S.pilEdit = null; ["#plZona", "#plNombre", "#plVol", "#cvLargo", "#cvAncho", "#cvDiam", "#cvProf"].forEach(s => { $(s).value = ""; }); $("#cvRes").textContent = ""; $("#plErr").textContent = ""; $("#pilTitulo").textContent = "Agregar pileta"; $("#plGuardar").textContent = "Agregar"; $("#plCancelar").hidden = true; }
+$("#plCancelar").addEventListener("click", limpiarPil);
+$("#fPil").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!can("admin")) return;
+  const zona = $("#plZona").value.trim(), nombre = $("#plNombre").value.trim(), vol = parseFloat($("#plVol").value);
+  if (zona.length < 3) { $("#plErr").textContent = "Indica la zona."; return; }
+  if (nombre.length < 3) { $("#plErr").textContent = "Indica el nombre de la pileta."; return; }
+  const data = { zona, nombre, vol: vol > 0 ? vol : null };
+  try {
+    if (S.pilEdit) { await update(ref(db, PIL + "/piletas/" + S.pilEdit), data); toast("Pileta actualizada"); }
+    else { const orden = Math.max(0, ...S.pils.map(p => p.orden || 0)) + 1; await push(ref(db, PIL + "/piletas"), Object.assign(data, { orden, activa: true })); toast("Pileta agregada"); }
+    limpiarPil();
+  } catch (err) { $("#plErr").textContent = "No se pudo guardar. Revisa la conexión."; }
+});
+function renderPil() {
+  if (!$("#pilBody")) return;
+  const zs = [...new Set(S.pils.map(p => p.zona))];
+  $("#pilBody").innerHTML = `<div class="tablebox"><table><thead><tr><th>Pileta</th><th class="num">Volumen</th><th>Estado</th><th></th></tr></thead><tbody>${zs.map(z => `<tr class="zona"><td colspan="4">${esc(z)}</td></tr>` + S.pils.filter(p => p.zona === z).map(p => {
+    const nReg = S.med.filter(m => m.pileta === p.id).length;
+    const acc = S.pilBorrar === p.id
+      ? `<button class="btn danger" type="button" data-ldel="${esc(p.id)}">Confirmar</button> <button class="btn ghost sm" type="button" data-lcancel="1">No</button>`
+      : `<button class="btn ghost sm" type="button" data-ledit="${esc(p.id)}">Editar</button> <button class="btn ghost sm" type="button" data-ltog="${esc(p.id)}">${p.activa === false ? "Activar" : "Desactivar"}</button>${nReg ? "" : ` <button class="btn danger" type="button" data-lask="${esc(p.id)}">Borrar</button>`}`;
+    return `<tr><td>${esc(p.nombre)}</td><td class="num">${p.vol > 0 ? nf(p.vol, p.vol % 1 ? 1 : 0) + " m³" : '<span class="pill warn">Pendiente</span>'}</td><td><span class="pill ${p.activa === false ? "info" : "ok"}">${p.activa === false ? "Inactiva" : "Activa"}</span></td><td>${acc}</td></tr>`;
+  }).join("")).join("")}</tbody></table></div><div class="small muted">Una pileta con registros no se puede borrar, solo desactivar, para no perder su historial.</div>`;
+}
+$("#pilBody").addEventListener("click", async e => {
+  const t = e.target.closest("button"); if (!t || !can("admin")) return;
+  const d = t.dataset;
+  if (d.ledit) { const p = pil(d.ledit); if (!p) return; S.pilEdit = p.id; $("#plZona").value = p.zona; $("#plNombre").value = p.nombre; $("#plVol").value = p.vol > 0 ? p.vol : ""; $("#pilTitulo").textContent = "Editar pileta"; $("#plGuardar").textContent = "Guardar cambios"; $("#plCancelar").hidden = false; $("#plVol").focus(); }
+  else if (d.ltog) { const p = pil(d.ltog); try { await update(ref(db, PIL + "/piletas/" + d.ltog), { activa: p.activa === false }); } catch (err) { toast("No se pudo cambiar"); } }
+  else if (d.lask) { S.pilBorrar = d.lask; renderPil(); }
+  else if (d.lcancel) { S.pilBorrar = null; renderPil(); }
+  else if (d.ldel) { try { await remove(ref(db, PIL + "/piletas/" + d.ldel)); toast("Pileta borrada"); } catch (err) { toast("No se pudo borrar"); } S.pilBorrar = null; }
+});
+
 // ─── PERSONAL DE PILETAS (solo jefatura) ─────────────────────────────────────
-S.pers = []; S.persEdit = null; S.persBorrar = null;
 const syncPinBox = () => { $("#psPinBox").hidden = $("#psCargo").value !== "supervisor"; };
 $("#psCargo").addEventListener("change", syncPinBox);
 function limpiarPers() { S.persEdit = null; $("#psNombre").value = ""; $("#psCargo").value = "operador"; $("#psPin").value = ""; $("#psErr").textContent = ""; $("#persTitulo").textContent = "Agregar persona"; $("#psGuardar").textContent = "Agregar"; $("#psCancelar").hidden = true; syncPinBox(); }
 $("#psCancelar").addEventListener("click", limpiarPers);
 $("#fPers").addEventListener("submit", async e => {
   e.preventDefault();
-  if (!can("personal")) return;
+  if (!can("admin")) return;
   const nombre = $("#psNombre").value.trim(), cargo = $("#psCargo").value, pin = $("#psPin").value.trim();
   if (nombre.length < 3) { $("#psErr").textContent = "Escribe el nombre completo."; return; }
   if (cargo === "supervisor" && !/^\d{4}$/.test(pin)) { $("#psErr").textContent = "El supervisor necesita un PIN de 4 números."; return; }
@@ -677,7 +871,7 @@ function renderPers() {
   }).join("")}</tbody></table></div><div class="small muted">Desactiva a quien deje de trabajar en piletas: sus registros se conservan y deja de aparecer en el ingreso.</div>`;
 }
 $("#persBody").addEventListener("click", async e => {
-  const t = e.target.closest("button"); if (!t || !can("personal")) return;
+  const t = e.target.closest("button"); if (!t || !can("admin")) return;
   const d = t.dataset;
   if (d.pedit) { const p = S.pers.find(x => x.id === d.pedit); if (!p) return; S.persEdit = p.id; $("#psNombre").value = p.nombre; $("#psCargo").value = p.cargo === "supervisor" ? "supervisor" : "operador"; $("#psPin").value = p.pin || ""; syncPinBox(); $("#persTitulo").textContent = "Editar persona"; $("#psGuardar").textContent = "Guardar cambios"; $("#psCancelar").hidden = false; $("#psNombre").focus(); }
   else if (d.ptog) { const p = S.pers.find(x => x.id === d.ptog); try { await update(ref(db, PIL + "/personal/" + d.ptog), { activo: p.activo === false }); } catch (err) { toast("No se pudo cambiar"); } }
@@ -685,17 +879,8 @@ $("#persBody").addEventListener("click", async e => {
   else if (d.pcancel) { S.persBorrar = null; renderPers(); }
   else if (d.pdel) { try { await remove(ref(db, PIL + "/personal/" + d.pdel)); toast("Persona borrada"); } catch (err) { toast("No se pudo borrar"); } S.persBorrar = null; }
 });
-renderPers();
 
-// ─── GUÍA: TABLA DE DOSIS ────────────────────────────────────────────────────
-(() => {
-  const lects = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7];
-  const head = `<thead><tr><th>Lectura ppm</th>${PILETAS.map(p => `<th class="num">${p.vol} m³ · 10%</th>`).join("")}${PILETAS.map(p => `<th class="num">${p.vol} m³ · 5%</th>`).join("")}</tr></thead>`;
-  const body = lects.map(l => `<tr><td>${nf(l)}</td>${PILETAS.map(p => `<td class="num">${dosis(p.vol, l, "10")}</td>`).join("")}${PILETAS.map(p => `<td class="num">${dosis(p.vol, l, "5")}</td>`).join("")}</tr>`).join("") + `<tr><td>0,8–1,5</td><td colspan="6"><b>No agregar</b></td></tr><tr><td>&gt; 1,5</td><td colspan="6"><b>No agregar · avisar al supervisor</b></td></tr>`;
-  $("#tblDosis").innerHTML = head + "<tbody>" + body + "</tbody>";
-})();
-
-calc(); renderRegistro(); renderInforme(); renderGasto(); renderVac();
+renderTodo(); renderPers();
 </script>
 </body>
 </html>
